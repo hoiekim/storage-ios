@@ -1,0 +1,563 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		576FFD282CF4D182008A50B8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 576FFD0F2CF4D17F008A50B8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 576FFD162CF4D17F008A50B8;
+			remoteInfo = Hoicloud;
+		};
+		576FFD322CF4D182008A50B8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 576FFD0F2CF4D17F008A50B8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 576FFD162CF4D17F008A50B8;
+			remoteInfo = Hoicloud;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		576FFD172CF4D17F008A50B8 /* Hoicloud.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Hoicloud.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		576FFD272CF4D182008A50B8 /* HoicloudTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HoicloudTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		576FFD312CF4D182008A50B8 /* HoicloudUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HoicloudUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		576FFD192CF4D17F008A50B8 /* Hoicloud */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Hoicloud;
+			sourceTree = "<group>";
+		};
+		576FFD2A2CF4D182008A50B8 /* HoicloudTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = HoicloudTests;
+			sourceTree = "<group>";
+		};
+		576FFD342CF4D182008A50B8 /* HoicloudUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = HoicloudUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		576FFD142CF4D17F008A50B8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		576FFD242CF4D182008A50B8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		576FFD2E2CF4D182008A50B8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		576FFD0E2CF4D17F008A50B8 = {
+			isa = PBXGroup;
+			children = (
+				576FFD192CF4D17F008A50B8 /* Hoicloud */,
+				576FFD2A2CF4D182008A50B8 /* HoicloudTests */,
+				576FFD342CF4D182008A50B8 /* HoicloudUITests */,
+				576FFD182CF4D17F008A50B8 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		576FFD182CF4D17F008A50B8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				576FFD172CF4D17F008A50B8 /* Hoicloud.app */,
+				576FFD272CF4D182008A50B8 /* HoicloudTests.xctest */,
+				576FFD312CF4D182008A50B8 /* HoicloudUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		576FFD162CF4D17F008A50B8 /* Hoicloud */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 576FFD3B2CF4D182008A50B8 /* Build configuration list for PBXNativeTarget "Hoicloud" */;
+			buildPhases = (
+				576FFD132CF4D17F008A50B8 /* Sources */,
+				576FFD142CF4D17F008A50B8 /* Frameworks */,
+				576FFD152CF4D17F008A50B8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				576FFD192CF4D17F008A50B8 /* Hoicloud */,
+			);
+			name = Hoicloud;
+			packageProductDependencies = (
+			);
+			productName = Hoicloud;
+			productReference = 576FFD172CF4D17F008A50B8 /* Hoicloud.app */;
+			productType = "com.apple.product-type.application";
+		};
+		576FFD262CF4D182008A50B8 /* HoicloudTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 576FFD3E2CF4D182008A50B8 /* Build configuration list for PBXNativeTarget "HoicloudTests" */;
+			buildPhases = (
+				576FFD232CF4D182008A50B8 /* Sources */,
+				576FFD242CF4D182008A50B8 /* Frameworks */,
+				576FFD252CF4D182008A50B8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				576FFD292CF4D182008A50B8 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				576FFD2A2CF4D182008A50B8 /* HoicloudTests */,
+			);
+			name = HoicloudTests;
+			packageProductDependencies = (
+			);
+			productName = HoicloudTests;
+			productReference = 576FFD272CF4D182008A50B8 /* HoicloudTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		576FFD302CF4D182008A50B8 /* HoicloudUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 576FFD412CF4D182008A50B8 /* Build configuration list for PBXNativeTarget "HoicloudUITests" */;
+			buildPhases = (
+				576FFD2D2CF4D182008A50B8 /* Sources */,
+				576FFD2E2CF4D182008A50B8 /* Frameworks */,
+				576FFD2F2CF4D182008A50B8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				576FFD332CF4D182008A50B8 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				576FFD342CF4D182008A50B8 /* HoicloudUITests */,
+			);
+			name = HoicloudUITests;
+			packageProductDependencies = (
+			);
+			productName = HoicloudUITests;
+			productReference = 576FFD312CF4D182008A50B8 /* HoicloudUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		576FFD0F2CF4D17F008A50B8 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1610;
+				LastUpgradeCheck = 1610;
+				TargetAttributes = {
+					576FFD162CF4D17F008A50B8 = {
+						CreatedOnToolsVersion = 16.1;
+					};
+					576FFD262CF4D182008A50B8 = {
+						CreatedOnToolsVersion = 16.1;
+						TestTargetID = 576FFD162CF4D17F008A50B8;
+					};
+					576FFD302CF4D182008A50B8 = {
+						CreatedOnToolsVersion = 16.1;
+						TestTargetID = 576FFD162CF4D17F008A50B8;
+					};
+				};
+			};
+			buildConfigurationList = 576FFD122CF4D17F008A50B8 /* Build configuration list for PBXProject "Hoicloud" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 576FFD0E2CF4D17F008A50B8;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 576FFD182CF4D17F008A50B8 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				576FFD162CF4D17F008A50B8 /* Hoicloud */,
+				576FFD262CF4D182008A50B8 /* HoicloudTests */,
+				576FFD302CF4D182008A50B8 /* HoicloudUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		576FFD152CF4D17F008A50B8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		576FFD252CF4D182008A50B8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		576FFD2F2CF4D182008A50B8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		576FFD132CF4D17F008A50B8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		576FFD232CF4D182008A50B8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		576FFD2D2CF4D182008A50B8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		576FFD292CF4D182008A50B8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 576FFD162CF4D17F008A50B8 /* Hoicloud */;
+			targetProxy = 576FFD282CF4D182008A50B8 /* PBXContainerItemProxy */;
+		};
+		576FFD332CF4D182008A50B8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 576FFD162CF4D17F008A50B8 /* Hoicloud */;
+			targetProxy = 576FFD322CF4D182008A50B8 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		576FFD392CF4D182008A50B8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		576FFD3A2CF4D182008A50B8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		576FFD3C2CF4D182008A50B8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Hoicloud/Preview Content\"";
+				DEVELOPMENT_TEAM = LVDPYK299G;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kim.hoie.Hoicloud;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		576FFD3D2CF4D182008A50B8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Hoicloud/Preview Content\"";
+				DEVELOPMENT_TEAM = LVDPYK299G;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kim.hoie.Hoicloud;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		576FFD3F2CF4D182008A50B8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LVDPYK299G;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kim.hoie.HoicloudTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Hoicloud.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Hoicloud";
+			};
+			name = Debug;
+		};
+		576FFD402CF4D182008A50B8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LVDPYK299G;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kim.hoie.HoicloudTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Hoicloud.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Hoicloud";
+			};
+			name = Release;
+		};
+		576FFD422CF4D182008A50B8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LVDPYK299G;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kim.hoie.HoicloudUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Hoicloud;
+			};
+			name = Debug;
+		};
+		576FFD432CF4D182008A50B8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LVDPYK299G;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kim.hoie.HoicloudUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Hoicloud;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		576FFD122CF4D17F008A50B8 /* Build configuration list for PBXProject "Hoicloud" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				576FFD392CF4D182008A50B8 /* Debug */,
+				576FFD3A2CF4D182008A50B8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		576FFD3B2CF4D182008A50B8 /* Build configuration list for PBXNativeTarget "Hoicloud" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				576FFD3C2CF4D182008A50B8 /* Debug */,
+				576FFD3D2CF4D182008A50B8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		576FFD3E2CF4D182008A50B8 /* Build configuration list for PBXNativeTarget "HoicloudTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				576FFD3F2CF4D182008A50B8 /* Debug */,
+				576FFD402CF4D182008A50B8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		576FFD412CF4D182008A50B8 /* Build configuration list for PBXNativeTarget "HoicloudUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				576FFD422CF4D182008A50B8 /* Debug */,
+				576FFD432CF4D182008A50B8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 576FFD0F2CF4D17F008A50B8 /* Project object */;
+}
