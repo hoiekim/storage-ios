@@ -30,11 +30,12 @@ struct FullScreenPhotoView: View {
     @Binding var isPresented: Bool
     @ObservedObject var photoViewModel: PhotoViewModel
     
-    @State private var targetPhoto: PhotoMetadata? = nil
+    @State var targetPhoto: PhotoMetadata? = nil
     @State private var thumbnail: UIImage? = nil
     @State private var fullImage: UIImage? = nil
     @State private var player: AVPlayer? = nil
     @State private var isLoadingFullData = false
+    @State var showMetadata = false
 
     var body: some View {
         VStack {
@@ -49,8 +50,7 @@ struct FullScreenPhotoView: View {
                 }
                 Spacer()
                 Button(action: {
-                    // Show metadata here
-                    print("Show metadata for \(photoViewModel.selectedPhoto?.filename ?? "Unknown")")
+                    showMetadata = true
                 }) {
                     Image(systemName: "ellipsis")
                         .font(.title)
@@ -154,12 +154,21 @@ struct FullScreenPhotoView: View {
             if let selectedPhoto = photoViewModel.selectedPhoto {
                 targetPhoto = selectedPhoto
             }
-            if let thumbnail_id = targetPhoto?.thumbnail_id {
-                thumbnail = photoViewModel.thumbnails[thumbnail_id]
+            if let filekey = targetPhoto?.filekey {
+                thumbnail = photoViewModel.thumbnails[filekey]
             }
         }
         .onChange(of: targetPhoto) {
             fetchFullImage()
+        }
+        .sheet(isPresented: $showMetadata) {
+            if let targetPhoto {
+                MetadataView(
+                    photo: targetPhoto,
+                    show: $showMetadata,
+                    isFullScreenShow: $isPresented
+                )
+            }
         }
     }
     
