@@ -6,14 +6,16 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 struct ContentView: View {
-    @StateObject private var viewModel = PhotoViewModel()
     @State private var isFullScreenPresented = false
     @State private var showConfiguration = false
     @State private var showAddPhotoSheet = false
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
+    @StateObject private var viewModel = PhotoViewModel()
+    @StateObject private var uploadProgress = ProgressDictionary()
     
     let columns = [
         GridItem(.flexible(), spacing: 2),
@@ -21,91 +23,111 @@ struct ContentView: View {
         GridItem(.flexible(), spacing: 2)
     ]
     
+    var anyOfMultiple: [String] {[
+        apiHost,
+        apiKey,
+    ]}
+    
     var body: some View {
-        NavigationView {
-            ZStack {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 1) {
-                        ForEach(viewModel.photos) { photo in
-                            renderStack(photo)
+        ZStack {
+            NavigationView {
+                ZStack {
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 1) {
+                            ForEach(viewModel.photos) { photo in
+                                renderStack(photo)
+                            }
                         }
                     }
-                }
-                .navigationTitle("Hoicloud Photos")
-                .onAppear {
-                    if apiHost.isEmpty || apiKey.isEmpty {
-                        showConfiguration = true
-                    } else {
-                        viewModel.fetchMetadata(apiHost: apiHost, apiKey: apiKey)
+                    .navigationTitle("Hoicloud Photos")
+                    .onAppear {
+                        if apiHost.isEmpty || apiKey.isEmpty {
+                            showConfiguration = true
+                        } else {
+                            viewModel.fetchMetadata()
+                        }
                     }
-                }
-                .onChange(of: showConfiguration) {
-                    viewModel.fetchMetadata(apiHost: apiHost, apiKey: apiKey)
-                }
-                .onChange(of: isFullScreenPresented) {
-                    viewModel.fetchMetadata(apiHost: apiHost, apiKey: apiKey)
-                }
-                .onChange(of: showAddPhotoSheet) {
-                    viewModel.fetchMetadata(apiHost: apiHost, apiKey: apiKey)
-                }
-                .fullScreenCover(isPresented: $isFullScreenPresented) {
-                    if viewModel.selectedPhoto != nil {
-                        FullScreenPhotoView(
-                            apiHost: $apiHost,
-                            apiKey: $apiKey,
-                            isPresented: $isFullScreenPresented,
-                            photoViewModel: viewModel
+                    .onChange(of: anyOfMultiple) {
+                        print("Refreshing")
+                        viewModel.fetchMetadata()
+                    }
+                    .fullScreenCover(isPresented: $isFullScreenPresented) {
+                        if viewModel.selectedPhoto != nil {
+                            FullScreenPhotoView(
+                                isPresented: $isFullScreenPresented,
+                                photoViewModel: viewModel
+                            )
+                        }
+                    }
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(action: {
+                                showConfiguration = true
+                            }) {
+                                Image(systemName: "gearshape.fill")
+                            }
+                        }
+                    }
+                    .sheet(isPresented: $showConfiguration) {
+                        ConfigurationView(
+                            apiHost: apiHost,
+                            apiKey: apiKey,
+                            show: $showConfiguration)
+                    }
+                    .sheet(isPresented: $showAddPhotoSheet) {
+                        ImagePickerView(
+                            photoViewModel: viewModel,
+                            uploadProgress: uploadProgress,
+                            show: $showAddPhotoSheet
                         )
                     }
-                }
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            showConfiguration = true
-                        }) {
-                            Image(systemName: "gearshape.fill")
-                        }
-                    }
-                }
-                .sheet(isPresented: $showConfiguration) {
-                    ConfigurationView(
-                        apiHost: apiHost,
-                        apiKey: apiKey,
-                        show: $showConfiguration)
-                }
-                .sheet(isPresented: $showAddPhotoSheet) {
-                    ImagePickerView(
-                        show: $showAddPhotoSheet
-                    )
-                }
-                
-                VStack {
-                    Spacer()
-                    HStack {
+                    
+                    VStack {
                         Spacer()
-                        Button(action: {
-                            showAddPhotoSheet = true
-                        }) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 56, height: 56)
-                                .background(Color.blue)
-                                .clipShape(Circle())
-                                .shadow(
-                                    color: .black,
-                                    radius: 15,
-                                    x: 5,
-                                    y: 10
-                                )
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                showAddPhotoSheet = true
+                            }) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 56, height: 56)
+                                    .background(Color.blue)
+                                    .clipShape(Circle())
+                                    .shadow(
+                                        color: .black,
+                                        radius: 15,
+                                        x: 5,
+                                        y: 10
+                                    )
+                            }
+                            .padding()
                         }
-                        
-                        .padding()
                     }
                 }
             }
+            .preferredColorScheme(.dark)
+            
+            VStack {
+                if !uploadProgress.isEmpty() {
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
+                            Rectangle()
+                                .fill(Color.blue)
+                                .frame(width: geometry.size.width * uploadProgress.rate())
+                        }
+                        .cornerRadius(2)
+                    }
+                    .frame(height: 4)
+                    .padding(.horizontal)
+                    .animation(.linear, value: uploadProgress.rate())
+                    Spacer()
+                }
+            }
         }
-        .preferredColorScheme(.dark)
     }
     
     @ViewBuilder
@@ -132,8 +154,6 @@ struct ContentView: View {
                     .overlay(ProgressView())
                     .onAppear {
                         viewModel.fetchThumbnail(
-                            apiHost: apiHost,
-                            apiKey: apiKey,
                             id: filekey
                         )
                     }

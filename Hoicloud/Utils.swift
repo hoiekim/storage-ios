@@ -37,26 +37,6 @@ func getUrlRequest(
     return request
 }
 
-struct PhotoMetadata: Identifiable, Codable, Equatable {
-    let id: Int
-    let filekey: String
-    let filename: String
-    let filesize: Int
-    let mime_type: String
-    let width: Int?
-    let height: Int?
-    let duration: Float?
-    let altitude: Float?
-    let latitude: Float?
-    let longitude: Float?
-    let created: String?
-    let uploaded: String
-    
-    static func == (lhs: PhotoMetadata, rhs: PhotoMetadata) -> Bool {
-        return lhs.filekey == rhs.filekey
-    }
-}
-
 struct MetadataResponse: Codable {
     let message: String?
     let body: [PhotoMetadata]
@@ -64,123 +44,6 @@ struct MetadataResponse: Codable {
 
 struct UploadResponse: Codable {
     let message: String?
-}
-
-func uploadFile(
-    apiHost: String,
-    apiKey: String,
-    item: PhotosPickerItem
-) async {
-    if apiHost.isEmpty || apiKey.isEmpty { return }
-    let itemId = item.itemIdentifier
-    guard var request = getUrlRequest(
-        apiHost: apiHost,
-        apiKey: apiKey,
-        route: "file",
-        parameter: itemId,
-        method: "POST"
-    ) else { return }
-    
-    print("Sending request to upload photo: \(item)")
-    
-    do {
-        let fileData = try await item.loadTransferable(type: Data.self)
-        guard let fileData = fileData else { return }
-        
-        var body = Data()
-        let boundary = UUID().uuidString
-        let fileUrl = try await item.loadTransferable(type: DataUrl.self)
-        let filename = fileUrl?.url.lastPathComponent ?? "unknown"
-        let contentType = item.supportedContentTypes.first
-        let preferredMimeType = contentType?.preferredMIMEType
-        let mimeType = preferredMimeType ?? "application/octet-stream"
-
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
-        body.append(fileData)
-        body.append("\r\n".data(using: .utf8)!)
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
-        
-        request.setValue(
-            "multipart/form-data; boundary=\(boundary)",
-            forHTTPHeaderField: "Content-Type"
-        )
-        request.httpBody = body
-        
-        let task = URLSession.shared.dataTask(
-            with: request
-        ) { data, response, error in
-            guard let data = data, error == nil else {
-                print("Error uploading file")
-                print(error ?? "Unknown error")
-                return
-            }
-            do {
-                if let response = response as? HTTPURLResponse {
-                    let json = try JSONDecoder().decode(UploadResponse.self, from: data)
-                    let statusCode = response.statusCode
-                    let message = json.message ?? "Unknown"
-                    if 200 <= statusCode && statusCode < 300 {
-                        print("Upload successful(\(statusCode)): \(message)")
-                    } else {
-                        print("Upload failed(\(statusCode)): \(message)")
-                    }
-                }
-            } catch {
-                print("Error decoding metadata")
-                print(error)
-            }
-        }
-        
-        task.resume()
-    } catch {
-        print("Failed to load file: \(error)")
-    }
-}
-
-func deleteFile(
-    apiHost: String,
-    apiKey: String,
-    photo: PhotoMetadata
-) async {
-    if apiHost.isEmpty || apiKey.isEmpty { return }
-    guard let request = getUrlRequest(
-        apiHost: apiHost,
-        apiKey: apiKey,
-        route: "file",
-        parameter: String(photo.id),
-        method: "DELETE"
-    ) else { return }
-    
-    print("Sending request to delete photo: \(photo.id)")
-    
-    let task = URLSession.shared.dataTask(
-        with: request
-    ) { data, response, error in
-        guard let data = data, error == nil else {
-            print("Error uploading file")
-            print(error ?? "Unknown error")
-            return
-        }
-        do {
-            if let response = response as? HTTPURLResponse {
-                let json = try JSONDecoder().decode(UploadResponse.self, from: data)
-                let statusCode = response.statusCode
-                let message = json.message ?? "Unknown"
-                if 200 <= statusCode && statusCode < 300 {
-                    print("Delete successful(\(statusCode)): \(message)")
-                } else {
-                    print("Delete failed(\(statusCode)): \(message)")
-                }
-            }
-        } catch {
-            print("Error decoding response")
-            print(error)
-        }
-    }
-    
-    task.resume()
 }
 
 struct DataUrl: Transferable {
@@ -192,6 +55,100 @@ struct DataUrl: Transferable {
         } importing: { received in
             Self(url: received.file)
         }
+    }
+}
+
+func prepareFileToUpload(item: PhotosPickerItem, boundary: String) async -> Data? {
+    do {
+        print("Preparing file to upload")
+        let fileData = try await item.loadTransferable(type: Data.self)!
+        
+        var body = Data()
+        let fileUrl = try await item.loadTransferable(type: DataUrl.self)!
+        
+        let filename = fileUrl.url.lastPathComponent
+        let tempUrl = try writeDataToTemporaryFile(data: fileData, fileName: filename)
+        
+        if let identifier = item.itemIdentifier,
+           let asset = PHAsset.fetchAssets(
+                withLocalIdentifiers: [identifier],
+                options: nil
+            ).firstObject,
+           let creationDate = asset.creationDate {
+            setCreationDate(url: tempUrl, creationDate: creationDate)
+        } else {
+            print("Creation date is not updated")
+        }
+        
+        let tempData = try Data(contentsOf: tempUrl)
+        
+        let contentType = item.supportedContentTypes.first
+        let preferredMimeType = contentType?.preferredMIMEType
+        let mimeType = preferredMimeType ?? "application/octet-stream"
+        
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(tempData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        return body
+    } catch {
+        print("Failed to prepare data to upload: \(error)")
+        return nil
+    }
+}
+
+func writeDataToTemporaryFile(data: Data, fileName: String) throws -> URL {
+    let tempDirectory = FileManager.default.temporaryDirectory
+    let fileURL = tempDirectory.appendingPathComponent(fileName)
+    try data.write(to: fileURL)
+    return fileURL
+}
+
+func setCreationDate(url: URL, creationDate: Date) {
+    var attributes = [FileAttributeKey: Any]()
+    attributes[.creationDate] = creationDate
+    attributes[.modificationDate] = creationDate
+    
+    do {
+        try FileManager.default.setAttributes(attributes, ofItemAtPath: url.path)
+        print("Successfully updated creation date to: \(creationDate)")
+    } catch {
+        print("Failed to update creation date: \(error.localizedDescription)")
+    }
+}
+
+class ProgressDictionary: ObservableObject {
+    @Published var dict: [String: Bool] = [:]
+    
+    func start(id: String) {
+        dict[id] = false
+    }
+    
+    func complete(id: String) {
+        dict[id] = true
+    }
+    
+    func remove(id: String) {
+        dict.removeValue(forKey: id)
+    }
+    
+    func isEmpty() -> Bool {
+        return dict.values.count == 0
+    }
+    
+    func size() -> Int {
+        return dict.values.count
+    }
+    
+    func rate() -> CGFloat {
+        let totalTasks = size()
+        guard totalTasks > 0 else { return 1 }
+        let completedTasks = dict.values.map { $0 }.filter { $0 }.count
+        print(completedTasks, totalTasks)
+        return CGFloat(completedTasks + 1) / CGFloat(totalTasks + 1)
     }
 }
 

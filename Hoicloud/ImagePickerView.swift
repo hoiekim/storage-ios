@@ -10,8 +10,8 @@ import UIKit
 import PhotosUI
 
 struct ImagePickerView: View {
-    @AppStorage("apiHost") var apiHost = ""
-    @AppStorage("apiKey") var apiKey = ""
+    @ObservedObject var photoViewModel: PhotoViewModel
+    @ObservedObject var uploadProgress: ProgressDictionary
     @Binding var show: Bool
     @State private var selectedItems: [PhotosPickerItem] = []
     
@@ -33,8 +33,8 @@ struct ImagePickerView: View {
                 )
                 
                 if selectedItems.count > 0 {
-                    Text("Item selected: \(selectedItems.count)")
-                    Button("Upload Video") {
+                    Text("Item Selected: \(selectedItems.count)")
+                    Button("Upload Selected Items") {
                         onUpload()
                     }
                 }
@@ -48,16 +48,25 @@ struct ImagePickerView: View {
     }
     
     private func onUpload() {
-        for item in selectedItems {
-            Task {
-                await uploadFile(
-                    apiHost: apiHost,
-                    apiKey: apiKey,
-                    item: item
-                )
-                show = false
+        Task {
+            for item in selectedItems {
+                if let itemId = item.itemIdentifier {
+                    uploadProgress.start(id: itemId)
+                }
+            }
+            for item in selectedItems {
+                await photoViewModel.uploadFile(item: item)
+                if let itemId = item.itemIdentifier {
+                    uploadProgress.complete(id: itemId)
+                }
+            }
+            for item in selectedItems {
+                if let itemId = item.itemIdentifier {
+                    uploadProgress.remove(id: itemId)
+                }
             }
         }
+        show = false
     }
 }
 

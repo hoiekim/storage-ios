@@ -25,8 +25,6 @@ func previousElement<T: Equatable>(before element: T, in array: [T]) -> T? {
 }
 
 struct FullScreenPhotoView: View {
-    @Binding var apiHost: String
-    @Binding var apiKey: String
     @Binding var isPresented: Bool
     @ObservedObject var photoViewModel: PhotoViewModel
     
@@ -165,6 +163,7 @@ struct FullScreenPhotoView: View {
             if let targetPhoto {
                 MetadataView(
                     photo: targetPhoto,
+                    photoViewModel: photoViewModel,
                     show: $showMetadata,
                     isFullScreenShow: $isPresented
                 )
@@ -179,15 +178,10 @@ struct FullScreenPhotoView: View {
         guard let photo = targetPhoto else { return }
         let filekey = photo.filekey
         let filename = photo.filename
-
-        guard let request = getUrlRequest(
-            apiHost: apiHost,
-            apiKey: apiKey,
-            route: "file",
-            parameter: filekey
+        
+        guard let request = photoViewModel.getFullImageRequest(
+            filekey: filekey
         ) else {
-            print("Invalid request for full-size image")
-            isLoadingFullData = false
             return
         }
         

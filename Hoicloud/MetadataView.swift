@@ -8,9 +8,8 @@
 import SwiftUI
 
 struct MetadataView: View {
-    @AppStorage("apiHost") var apiHost = ""
-    @AppStorage("apiKey") var apiKey = ""
     var photo: PhotoMetadata
+    @ObservedObject var photoViewModel: PhotoViewModel
     @Binding var show: Bool
     @Binding var isFullScreenShow: Bool
 
@@ -26,7 +25,7 @@ struct MetadataView: View {
                 HStack(spacing: 0) {
                     Text("File Name")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .foregroundColor(.gray)
                     Text(photo.filename)
                         .multilineTextAlignment(.trailing)
@@ -35,7 +34,7 @@ struct MetadataView: View {
                 HStack(spacing: 0) {
                     Text("MIME Type")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .foregroundColor(.gray)
                     Text(photo.mime_type)
                         .multilineTextAlignment(.trailing)
@@ -44,7 +43,7 @@ struct MetadataView: View {
                 HStack(spacing: 0) {
                     Text("Created")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .foregroundColor(.gray)
                     Text(formatISODate(photo.created))
                         .multilineTextAlignment(.trailing)
@@ -53,7 +52,7 @@ struct MetadataView: View {
                 HStack(spacing: 0) {
                     Text("Uploaded")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .foregroundColor(.gray)
                     Text(formatISODate(photo.uploaded))
                         .multilineTextAlignment(.trailing)
@@ -64,7 +63,7 @@ struct MetadataView: View {
                 HStack(spacing: 0) {
                     Text("Width")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .foregroundColor(.gray)
                     Text(formatSize(photo.width))
                         .multilineTextAlignment(.trailing)
@@ -73,7 +72,7 @@ struct MetadataView: View {
                 HStack(spacing: 0) {
                     Text("Height")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .foregroundColor(.gray)
                     Text(formatSize(photo.height))
                         .multilineTextAlignment(.trailing)
@@ -82,7 +81,7 @@ struct MetadataView: View {
                 HStack(spacing: 0) {
                     Text("Duration")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .foregroundColor(.gray)
                     Text(formatDuration(photo.duration))
                         .multilineTextAlignment(.trailing)
@@ -93,7 +92,7 @@ struct MetadataView: View {
                 HStack(spacing: 0) {
                     Text("Altitude")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .foregroundColor(.gray)
                     Text(formatAltitude(photo.altitude))
                         .multilineTextAlignment(.trailing)
@@ -102,7 +101,7 @@ struct MetadataView: View {
                 HStack(spacing: 0) {
                     Text("Location")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .foregroundColor(.gray)
                     Text(formatCoordinate(photo.latitude, photo.longitude))
                         .multilineTextAlignment(.trailing)
@@ -112,9 +111,7 @@ struct MetadataView: View {
             Section {
                 Button(action: {
                     Task {
-                        await deleteFile(
-                            apiHost: apiHost,
-                            apiKey: apiKey,
+                        await photoViewModel.deleteFile(
                             photo: photo
                         )
                         show = false
