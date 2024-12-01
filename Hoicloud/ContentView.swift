@@ -9,9 +9,11 @@ import SwiftUI
 import PhotosUI
 
 struct ContentView: View {
-    @State private var isFullScreenPresented = false
+    @State private var showFullScreenPhoto = false
     @State private var showConfiguration = false
     @State private var showAddPhotoSheet = false
+    @State private var selectedPhoto: PhotoMetadata? = nil
+    @State var selectedPhotos: [PhotoMetadata] = []
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     @StateObject private var viewModel = PhotoViewModel()
@@ -51,13 +53,12 @@ struct ContentView: View {
                         print("Refreshing")
                         viewModel.fetchMetadata()
                     }
-                    .fullScreenCover(isPresented: $isFullScreenPresented) {
-                        if viewModel.selectedPhoto != nil {
-                            FullScreenPhotoView(
-                                isPresented: $isFullScreenPresented,
-                                photoViewModel: viewModel
-                            )
-                        }
+                    .fullScreenCover(isPresented: $showFullScreenPhoto) {
+                        FullScreenPhotoView(
+                            isPresented: $showFullScreenPhoto,
+                            photoViewModel: viewModel,
+                            selectedPhoto: $selectedPhoto
+                        )
                     }
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
@@ -69,10 +70,7 @@ struct ContentView: View {
                         }
                     }
                     .sheet(isPresented: $showConfiguration) {
-                        ConfigurationView(
-                            apiHost: apiHost,
-                            apiKey: apiKey,
-                            show: $showConfiguration)
+                        ConfigurationView(show: $showConfiguration)
                     }
                     .sheet(isPresented: $showAddPhotoSheet) {
                         ImagePickerView(
@@ -162,8 +160,8 @@ struct ContentView: View {
                     }
             }
         }.onTapGesture {
-            viewModel.selectedPhoto = photo
-            isFullScreenPresented = true
+            selectedPhoto = photo
+            showFullScreenPhoto = true
         }
     }
     

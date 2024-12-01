@@ -27,6 +27,7 @@ func previousElement<T: Equatable>(before element: T, in array: [T]) -> T? {
 struct FullScreenPhotoView: View {
     @Binding var isPresented: Bool
     @ObservedObject var photoViewModel: PhotoViewModel
+    @Binding var selectedPhoto: PhotoMetadata?
     
     @State var targetPhoto: PhotoMetadata? = nil
     @State private var thumbnail: UIImage? = nil
@@ -34,6 +35,7 @@ struct FullScreenPhotoView: View {
     @State private var player: AVPlayer? = nil
     @State private var isLoadingFullData = false
     @State var showMetadata = false
+    
 
     var body: some View {
         VStack {
@@ -149,7 +151,7 @@ struct FullScreenPhotoView: View {
             }
         )
         .onAppear {
-            if let selectedPhoto = photoViewModel.selectedPhoto {
+            if let selectedPhoto = selectedPhoto {
                 targetPhoto = selectedPhoto
             }
             if let filekey = targetPhoto?.filekey {

@@ -33,15 +33,8 @@ class PhotoViewModel: ObservableObject {
     @AppStorage("apiKey") var apiKey = ""
     
     @Published var photos: [PhotoMetadata] = []
-    @Published var selectedPhoto: PhotoMetadata? = nil
     @Published var thumbnails: [String: UIImage] = [:]
     private var fetchTasks: [String: Task<Void, Never>] = [:]
-    
-    func getSelectedPhotoThumbnail() -> UIImage? {
-        guard let filekey = selectedPhoto?.filekey else { return nil }
-        let thumbnail = thumbnails[filekey]
-        return thumbnail
-    }
     
     let isoFormatter = ISO8601DateFormatter()
     
@@ -64,7 +57,7 @@ class PhotoViewModel: ObservableObject {
                 DispatchQueue.main.async {
                     var sortingPhotos: [PhotoMetadata] = []
                     for file in response.body {
-                        let isAae = file.filename.reversed().starts(
+                        let isAae = file.filename.lowercased().reversed().starts(
                             with: ".aae".reversed()
                         )
                         if !isAae {
