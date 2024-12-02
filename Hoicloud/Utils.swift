@@ -9,6 +9,7 @@ import SwiftUI
 import PhotosUI
 import Foundation
 import UniformTypeIdentifiers
+import BackgroundTasks
 
 func getUrlRequest(
     apiHost: String,
@@ -153,7 +154,6 @@ class Progress: ObservableObject {
         let totalTasks = size()
         guard totalTasks > 0 else { return 1 }
         let completedTasks = dict.values.map { $0 }.filter { $0 }.count
-        print(completedTasks, totalTasks)
         return CGFloat(completedTasks + 1) / CGFloat(totalTasks + 1)
     }
 }
@@ -163,8 +163,27 @@ class ImageSaver: NSObject {
         UIImageWriteToSavedPhotosAlbum(image, self, #selector(saveCompleted), nil)
     }
 
-    @objc func saveCompleted(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
+    @objc func saveCompleted(
+        _ image: UIImage,
+        didFinishSavingWithError error: Error?,
+        contextInfo: UnsafeRawPointer
+    ) {
         print("Save finished!")
+    }
+}
+
+func cleanTemporaryData() {
+    print("Cleaning cache: \(Date())")
+    do {
+        let fm = FileManager.default
+        let tmpDirURL = fm.temporaryDirectory
+        let tmpDirectoryContent = try fm.contentsOfDirectory(atPath: tmpDirURL.path)
+        for tmpFilePath in tmpDirectoryContent {
+            let trashFileURL = tmpDirURL.appendingPathComponent(tmpFilePath)
+            try fm.removeItem(atPath: trashFileURL.path)
+        }
+    } catch {
+        print("Failed to clean temporary data: \(error)")
     }
 }
 

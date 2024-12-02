@@ -164,36 +164,28 @@ class StorageApi: ObservableObject {
         )
         request.httpBody = body
         
-        let task = URLSession.shared.dataTask(
-            with: request
-        ) { data, response, error in
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 self.fetchMetadata()
+                cleanTemporaryData()
             }
-            
-            guard let data = data, error == nil else {
-                print("Error uploading file")
-                print(error ?? "Unknown error")
-                return
-            }
-            do {
-                if let response = response as? HTTPURLResponse {
-                    let json = try JSONDecoder().decode(UploadResponse.self, from: data)
-                    let statusCode = response.statusCode
-                    let message = json.message ?? "Unknown"
-                    if 200 <= statusCode && statusCode < 300 {
-                        print("Upload successful(\(statusCode)): \(message)")
-                    } else {
-                        print("Upload failed(\(statusCode)): \(message)")
-                    }
-                }
-            } catch {
-                print("Error decoding metadata")
-                print(error)
-            }
-        }
         
-        task.resume()
+            if let response = response as? HTTPURLResponse {
+                let json = try JSONDecoder().decode(UploadResponse.self, from: data)
+                let statusCode = response.statusCode
+                let message = json.message ?? "Unknown"
+                if 200 <= statusCode && statusCode < 300 {
+                    print("Upload successful(\(statusCode)): \(message)")
+                } else {
+                    print("Upload failed(\(statusCode)): \(message)")
+                }
+            }
+        } catch {
+            print("Error decoding metadata")
+            print(error)
+        }
     }
     
     func deleteFile(photo: Metadata) async {

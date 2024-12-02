@@ -204,14 +204,16 @@ struct FullImageView: View {
         guard !isLoadingFullData else { return }
         isLoadingFullData = true
         
-        guard let photo = targetItem else { return }
-        let filekey = photo.filekey
-        let mimetype = photo.mime_type
+        guard let targetItem = targetItem else { return }
+        let filekey = targetItem.filekey
+        let mimetype = targetItem.mime_type
         
         if mimetype.starts(with: "video/") {
             let request = storageApi.getFullImageRequest(filekey: filekey)
-            if let url = request?.url {
-                self.player = AVPlayer(url: url)
+            Task {
+                if let url = request?.url {
+                    self.player = AVPlayer(url: url)
+                }
             }
             isLoadingFullData = false
         } else if mimetype.starts(with: "image/") {
