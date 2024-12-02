@@ -9,15 +9,16 @@ import SwiftUI
 import PhotosUI
 
 struct ContentView: View {
-    @State private var showFullScreenPhoto = false
+    @State private var showFullScreen = false
     @State private var showConfiguration = false
-    @State private var showAddPhotoSheet = false
-    @State private var selectedPhoto: PhotoMetadata? = nil
-    @State var selectedPhotos: [PhotoMetadata] = []
+    @State private var showAddItemSheet = false
+    @State private var isSelecting = false
+    @State private var selectedItems: [Metadata] = []
+    @State private var selectedItem: Metadata? = nil
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
-    @StateObject private var viewModel = PhotoViewModel()
-    @StateObject private var uploadProgress = ProgressDictionary()
+    @StateObject private var storageApi = StorageApi()
+    @StateObject private var progress = Progress()
     
     let columns = [
         GridItem(.flexible(), spacing: 2),
@@ -25,10 +26,7 @@ struct ContentView: View {
         GridItem(.flexible(), spacing: 2)
     ]
     
-    var anyOfMultiple: [String] {[
-        apiHost,
-        apiKey,
-    ]}
+    var anyOfMultiple: [String] {[apiHost, apiKey]}
     
     var body: some View {
         ZStack {
@@ -36,47 +34,102 @@ struct ContentView: View {
                 ZStack {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 1) {
-                            ForEach(viewModel.photos) { photo in
+                            ForEach(storageApi.photos) { photo in
                                 renderStack(photo)
                             }
                         }
                     }
-                    .navigationTitle("Hoicloud Photos")
+                    .navigationTitle("Hoicloud")
                     .onAppear {
                         if apiHost.isEmpty || apiKey.isEmpty {
                             showConfiguration = true
                         } else {
-                            viewModel.fetchMetadata()
+                            storageApi.fetchMetadata()
                         }
                     }
                     .onChange(of: anyOfMultiple) {
-                        print("Refreshing")
-                        viewModel.fetchMetadata()
+                        storageApi.fetchMetadata()
                     }
-                    .fullScreenCover(isPresented: $showFullScreenPhoto) {
-                        FullScreenPhotoView(
-                            isPresented: $showFullScreenPhoto,
-                            photoViewModel: viewModel,
-                            selectedPhoto: $selectedPhoto
+                    .fullScreenCover(isPresented: $showFullScreen) {
+                        FullImageView(
+                            isPresented: $showFullScreen,
+                            storageApi: storageApi,
+                            selectedItem: $selectedItem
                         )
                     }
                     .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button(action: {
-                                showConfiguration = true
-                            }) {
-                                Image(systemName: "gearshape.fill")
+                        if isSelecting {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button(action: {
+                                    Task {
+                                        for photo in selectedItems {
+                                            await storageApi.deleteFile(photo: photo)
+                                        }
+                                        isSelecting = false
+                                    }
+                                }) {
+                                    Label("Delete", systemImage: "trash")
+                                        .labelStyle(.titleAndIcon)
+                                }
+                            }
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button(action: {
+                                    Task {
+                                        for photo in selectedItems {
+                                            progress.start(id: photo.filekey)
+                                        }
+                                        for photo in selectedItems {
+                                            print("Downloading: \(photo.filekey)")
+                                            if let data = await storageApi.getFullImageData(filekey: photo.filekey),
+                                               let image = UIImage(data: data) {
+                                                ImageSaver().writeToPhotoAlbum(image: image)
+                                            }
+                                            progress.complete(id: photo.filekey)
+                                        }
+                                        try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s delay
+                                        for photo in selectedItems {
+                                            progress.remove(id: photo.filekey)
+                                        }
+                                        isSelecting = false
+                                    }
+                                }) {
+                                    Label("Download", systemImage: "square.and.arrow.down")
+                                        .labelStyle(.titleAndIcon)
+                                }
+                            }
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button(action: {
+                                    isSelecting = false
+                                }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        } else {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button(action: {
+                                    selectedItems = []
+                                    isSelecting = true
+                                }) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                }
+                            }
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button(action: {
+                                    showConfiguration = true
+                                }) {
+                                    Image(systemName: "gearshape.fill")
+                                }
                             }
                         }
                     }
                     .sheet(isPresented: $showConfiguration) {
                         ConfigurationView(show: $showConfiguration)
                     }
-                    .sheet(isPresented: $showAddPhotoSheet) {
+                    .sheet(isPresented: $showAddItemSheet) {
                         ImagePickerView(
-                            photoViewModel: viewModel,
-                            uploadProgress: uploadProgress,
-                            show: $showAddPhotoSheet
+                            storageApi: storageApi,
+                            progress: progress,
+                            show: $showAddItemSheet
                         )
                     }
                     
@@ -85,13 +138,13 @@ struct ContentView: View {
                         HStack {
                             Spacer()
                             Button(action: {
-                                showAddPhotoSheet = true
+                                showAddItemSheet = true
                             }) {
                                 Image(systemName: "plus")
                                     .font(.system(size: 24, weight: .bold))
                                     .foregroundColor(.white)
                                     .frame(width: 56, height: 56)
-                                    .background(Color.blue)
+                                    .background(.blue)
                                     .clipShape(Circle())
                                     .shadow(
                                         color: .black,
@@ -108,76 +161,40 @@ struct ContentView: View {
             .preferredColorScheme(.dark)
             
             VStack {
-                if !uploadProgress.isEmpty() {
+                if !progress.isEmpty() {
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
                             Rectangle()
                                 .fill(Color.gray.opacity(0.3))
                             Rectangle()
                                 .fill(Color.blue)
-                                .frame(width: geometry.size.width * uploadProgress.rate())
+                                .frame(width: geometry.size.width * progress.rate())
                         }
                         .cornerRadius(2)
                     }
                     .frame(height: 4)
                     .padding(.horizontal)
-                    .animation(.linear, value: uploadProgress.rate())
+                    .animation(.linear, value: progress.rate())
                     Spacer()
                 }
             }
         }
-    }
-    
-    @ViewBuilder
-    private func renderStack(_ photo: PhotoMetadata) -> some View {
-        let screenWidth = UIScreen.main.bounds.width
-        let tileHeight = screenWidth / 3
-        
-        VStack {
-            let filekey = photo.filekey
-            if let thumbnail = viewModel.thumbnails[filekey] {
-                Image(uiImage: thumbnail)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: tileHeight)
-                    .padding(0)
-                    .overlay(
-                        durationOverlay(photo.duration),
-                        alignment: .bottomTrailing
-                    )
-            } else {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(height: tileHeight)
-                    .overlay(ProgressView())
-                    .onAppear {
-                        viewModel.fetchThumbnail(
-                            id: filekey
-                        )
-                    }
-                    .onDisappear {
-                        viewModel.cancelThumbnailFetch(for: filekey)
-                    }
-            }
-        }.onTapGesture {
-            selectedPhoto = photo
-            showFullScreenPhoto = true
+        .refreshable {
+            print("refreshing")
+            storageApi.fetchMetadata()
         }
     }
     
     @ViewBuilder
-    private func durationOverlay(_ duration: Float?) -> some View {
-        if let duration = duration {
-            let totalSeconds = Int(duration.rounded())
-            let minutes = totalSeconds / 60
-            let seconds = totalSeconds % 60
-            Text(String(format: "%d:%02d", minutes, seconds))
-                .font(.caption)
-                .padding(4)
-                .background(Color.black.opacity(0.6))
-                .foregroundColor(.white)
-                .padding([.trailing, .bottom], 8)
-        }
+    private func renderStack(_ photo: Metadata) -> some View {
+        ImageStackView(
+            storageApi: storageApi,
+            photo: photo,
+            showFullScreen: $showFullScreen,
+            selectedItem: $selectedItem,
+            selectedItems: $selectedItems,
+            isSelecting: $isSelecting
+        )
     }
 }
 

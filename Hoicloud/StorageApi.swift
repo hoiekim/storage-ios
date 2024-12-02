@@ -1,5 +1,5 @@
 //
-//  PhotoViewModel.swift
+//  StorageApi.swift
 //  Hoicloud
 //
 //  Created by Hoie Kim on 11/27/24.
@@ -8,7 +8,7 @@
 import SwiftUI
 import PhotosUI
 
-struct PhotoMetadata: Identifiable, Codable, Equatable {
+struct Metadata: Identifiable, Codable, Equatable {
     let id: Int
     let filekey: String
     let filename: String
@@ -23,16 +23,16 @@ struct PhotoMetadata: Identifiable, Codable, Equatable {
     let created: String?
     let uploaded: String
     
-    static func == (lhs: PhotoMetadata, rhs: PhotoMetadata) -> Bool {
+    static func == (lhs: Metadata, rhs: Metadata) -> Bool {
         return lhs.filekey == rhs.filekey
     }
 }
 
-class PhotoViewModel: ObservableObject {
+class StorageApi: ObservableObject {
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     
-    @Published var photos: [PhotoMetadata] = []
+    @Published var photos: [Metadata] = []
     @Published var thumbnails: [String: UIImage] = [:]
     private var fetchTasks: [String: Task<Void, Never>] = [:]
     
@@ -55,25 +55,23 @@ class PhotoViewModel: ObservableObject {
             do {
                 let response = try JSONDecoder().decode(MetadataResponse.self, from: data)
                 DispatchQueue.main.async {
-                    var sortingPhotos: [PhotoMetadata] = []
+                    self.photos = []
                     for file in response.body {
                         let isAae = file.filename.lowercased().reversed().starts(
                             with: ".aae".reversed()
                         )
                         if !isAae {
-                            sortingPhotos.append(file)
+                            self.photos.append(file)
                         }
                     }
-                    sortingPhotos.sort {
+                    self.photos.sort {
                         let s1 = $0.created ?? $0.uploaded
                         let s2 = $1.created ?? $1.uploaded
                         return s2 < s1
                     }
-                    self.photos = sortingPhotos
                 }
             } catch {
-                print("Error decoding metadata")
-                print(error)
+                print("Error decoding metadata: \(error)")
             }
         }.resume()
     }
@@ -129,6 +127,17 @@ class PhotoViewModel: ObservableObject {
         ) {
             return request
         } else { return nil }
+    }
+    
+    func getFullImageData(filekey: String) async -> Data? {
+        guard let request = getFullImageRequest(filekey: filekey) else { return nil }
+        do {
+            let (data, _) = try await URLSession.shared.data(for: request)
+            return data
+        } catch {
+            print("Failed to get full data: \(error)")
+            return nil
+        }
     }
     
     func uploadFile(item: PhotosPickerItem) async {
@@ -187,7 +196,7 @@ class PhotoViewModel: ObservableObject {
         task.resume()
     }
     
-    func deleteFile(photo: PhotoMetadata) async {
+    func deleteFile(photo: Metadata) async {
         if apiHost.isEmpty || apiKey.isEmpty { return }
         guard let request = getUrlRequest(
             apiHost: self.apiHost,

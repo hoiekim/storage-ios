@@ -1,5 +1,5 @@
 //
-//  ImagePicker.swift
+//  ImagePickerView.swift
 //  Hoicloud
 //
 //  Created by Hoie Kim on 11/27/24.
@@ -10,14 +10,14 @@ import UIKit
 import PhotosUI
 
 struct ImagePickerView: View {
-    @ObservedObject var photoViewModel: PhotoViewModel
-    @ObservedObject var uploadProgress: ProgressDictionary
+    @ObservedObject var storageApi: StorageApi
+    @ObservedObject var progress: Progress
     @Binding var show: Bool
     @State private var selectedItems: [PhotosPickerItem] = []
     
     var body: some View {
         Section {
-            Text("Add New Photos")
+            Text("Add New Item")
                 .font(.system(size: 24, weight: .bold))
                 .frame(alignment: Alignment.leading)
                 .padding(.top, 30.0)
@@ -26,7 +26,7 @@ struct ImagePickerView: View {
         List {
             Section {
                 PhotosPicker(
-                    "Select Media",
+                    "Select Item",
                     selection: $selectedItems,
                     matching: .any(of: [.images, .videos]),
                     photoLibrary: .shared()
@@ -51,18 +51,19 @@ struct ImagePickerView: View {
         Task {
             for item in selectedItems {
                 if let itemId = item.itemIdentifier {
-                    uploadProgress.start(id: itemId)
+                    progress.start(id: itemId)
                 }
             }
             for item in selectedItems {
-                await photoViewModel.uploadFile(item: item)
+                await storageApi.uploadFile(item: item)
                 if let itemId = item.itemIdentifier {
-                    uploadProgress.complete(id: itemId)
+                    progress.complete(id: itemId)
                 }
             }
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s delay
             for item in selectedItems {
                 if let itemId = item.itemIdentifier {
-                    uploadProgress.remove(id: itemId)
+                    progress.remove(id: itemId)
                 }
             }
         }

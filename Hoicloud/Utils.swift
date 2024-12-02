@@ -23,7 +23,9 @@ func getUrlRequest(
     
     let query = "?api_key=" + apiKey
     let routeUrlString = apiHost + "/" + route
-    let encodedParam = parameter?.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)
+    let encodedParam = parameter?.addingPercentEncoding(
+        withAllowedCharacters: .urlHostAllowed
+    )
     let fullUrlString = if encodedParam != nil {
         routeUrlString + "/" + encodedParam! + query
     } else {
@@ -39,7 +41,7 @@ func getUrlRequest(
 
 struct MetadataResponse: Codable {
     let message: String?
-    let body: [PhotoMetadata]
+    let body: [Metadata]
 }
 
 struct UploadResponse: Codable {
@@ -120,7 +122,7 @@ func setCreationDate(url: URL, creationDate: Date) {
     }
 }
 
-class ProgressDictionary: ObservableObject {
+class Progress: ObservableObject {
     @Published var dict: [String: Bool] = [:]
     
     func start(id: String) {
@@ -139,6 +141,10 @@ class ProgressDictionary: ObservableObject {
         return dict.values.count == 0
     }
     
+    func clear() {
+        dict.removeAll()
+    }
+    
     func size() -> Int {
         return dict.values.count
     }
@@ -149,6 +155,16 @@ class ProgressDictionary: ObservableObject {
         let completedTasks = dict.values.map { $0 }.filter { $0 }.count
         print(completedTasks, totalTasks)
         return CGFloat(completedTasks + 1) / CGFloat(totalTasks + 1)
+    }
+}
+
+class ImageSaver: NSObject {
+    func writeToPhotoAlbum(image: UIImage) {
+        UIImageWriteToSavedPhotosAlbum(image, self, #selector(saveCompleted), nil)
+    }
+
+    @objc func saveCompleted(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
+        print("Save finished!")
     }
 }
 

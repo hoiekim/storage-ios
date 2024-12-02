@@ -8,18 +8,37 @@
 import SwiftUI
 
 struct MetadataView: View {
-    var photo: PhotoMetadata
-    @ObservedObject var photoViewModel: PhotoViewModel
+    var photo: Metadata
+    @ObservedObject var storageApi: StorageApi
     @Binding var show: Bool
     @Binding var isFullScreenShow: Bool
 
     var body: some View {
-        Section {
-            Text("Photo Metadata")
-                .font(.system(size: 24, weight: .bold))
-                .frame(alignment: .leading)
-                .padding(.top, 30.0)
+        HStack {
+            Button(action: {
+                show = false
+            }) {
+                Image(systemName: "arrow.left")
+                    .font(.title)
+                    .foregroundColor(.white)
+                    .padding()
+            }
+            Spacer()
         }
+        
+        let title = if photo.mime_type.starts(with: "image/") {
+            "Photo Metadata"
+        } else if photo.mime_type.starts(with: "video/") {
+            "Video Metadata"
+        } else {
+            "File Metadata"
+        }
+        
+        Text(title)
+            .font(.system(size: 24, weight: .bold))
+            .frame(alignment: .leading)
+            .padding(.top, 10.0)
+        
         List {
             Section {
                 HStack(spacing: 0) {
@@ -111,7 +130,7 @@ struct MetadataView: View {
             Section {
                 Button(action: {
                     Task {
-                        await photoViewModel.deleteFile(
+                        await storageApi.deleteFile(
                             photo: photo
                         )
                         show = false
@@ -128,7 +147,6 @@ struct MetadataView: View {
                 }
             }
         }
-        .padding()
     }
     
     private let formatter1 = ISO8601DateFormatter()
