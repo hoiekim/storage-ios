@@ -28,35 +28,82 @@ struct Metadata: Identifiable, Codable, Equatable {
     }
 }
 
+func getUrlRequest(
+    apiHost: String,
+    apiKey: String,
+    route: String,
+    parameter: String? = nil,
+    method: String? = "GET"
+) -> URLRequest? {
+    if apiHost.isEmpty || apiKey.isEmpty {
+        return nil
+    }
+    
+    let query = "?api_key=" + apiKey
+    let routeUrlString = apiHost + "/" + route
+    let encodedParam = parameter?.addingPercentEncoding(
+        withAllowedCharacters: .urlHostAllowed
+    )
+    let fullUrlString = if encodedParam != nil {
+        routeUrlString + "/" + encodedParam! + query
+    } else {
+        routeUrlString + query
+    }
+    
+    guard let url = URL(string: fullUrlString) else { return nil }
+    var request = URLRequest(url: url)
+    request.httpMethod = method
+    
+    return request
+}
+
+struct MetadataResponse: Codable {
+    let message: String?
+    let body: [Metadata]?
+}
+
+struct UploadResponse: Codable {
+    let message: String?
+}
+
 class StorageApi: ObservableObject {
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     
     @Published var photos: [Metadata] = []
     @Published var thumbnails: [String: UIImage] = [:]
-    private var fetchTasks: [String: Task<Void, Never>] = [:]
+    private var fetchMetadataTask: Task<Void, Never>?
+    private var fetchThumbnailTasks: [String: Task<Void, Never>] = [:]
     
     let isoFormatter = ISO8601DateFormatter()
     
     func fetchMetadata() {
+        self.photos = []
+        
         guard let request = getUrlRequest(
             apiHost: self.apiHost,
             apiKey: self.apiKey,
             route: "metadata"
         ) else { return }
         
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let data = data, error == nil else {
-                print("Error fetching metadata")
-                print(error ?? "Unknown error")
-                return
-            }
-            
+        fetchMetadataTask?.cancel()
+        fetchMetadataTask = Task {
             do {
-                let response = try JSONDecoder().decode(MetadataResponse.self, from: data)
+                try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
+                guard !Task.isCancelled else { return }
+                
+                let (data, _) = try await URLSession.shared.data(for: request)
+
+                let decoded = try JSONDecoder().decode(MetadataResponse.self, from: data)
+                guard let body = decoded.body else {
+                    print("No data returned: \(decoded.message ?? "Unknown")")
+                    return
+                }
+                
+                guard !Task.isCancelled else { return }
+                
                 DispatchQueue.main.async {
-                    self.photos = []
-                    for file in response.body {
+                    for file in body {
                         let isAae = file.filename.lowercased().reversed().starts(
                             with: ".aae".reversed()
                         )
@@ -71,17 +118,17 @@ class StorageApi: ObservableObject {
                     }
                 }
             } catch {
-                print("Error decoding metadata: \(error)")
+                print("Error fetching metadata: \(error)")
             }
-        }.resume()
+        }
     }
 
     func fetchThumbnail(id: String) {
         guard thumbnails[id] == nil else { return }
         
         // Cancel any existing task for this identifier
-        fetchTasks[id]?.cancel()
-        fetchTasks[id] = Task {
+        fetchThumbnailTasks[id]?.cancel()
+        fetchThumbnailTasks[id] = Task {
             do {
                 try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
                 guard !Task.isCancelled else { return }
@@ -114,8 +161,8 @@ class StorageApi: ObservableObject {
     }
     
     func cancelThumbnailFetch(for id: String) {
-        fetchTasks[id]?.cancel()
-        fetchTasks[id] = nil
+        fetchThumbnailTasks[id]?.cancel()
+        fetchThumbnailTasks[id] = nil
     }
     
     func getFullImageRequest(filekey: String) -> URLRequest? {

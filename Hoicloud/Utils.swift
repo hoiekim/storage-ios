@@ -11,44 +11,6 @@ import Foundation
 import UniformTypeIdentifiers
 import BackgroundTasks
 
-func getUrlRequest(
-    apiHost: String,
-    apiKey: String,
-    route: String,
-    parameter: String? = nil,
-    method: String? = "GET"
-) -> URLRequest? {
-    if apiHost.isEmpty || apiKey.isEmpty {
-        return nil
-    }
-    
-    let query = "?api_key=" + apiKey
-    let routeUrlString = apiHost + "/" + route
-    let encodedParam = parameter?.addingPercentEncoding(
-        withAllowedCharacters: .urlHostAllowed
-    )
-    let fullUrlString = if encodedParam != nil {
-        routeUrlString + "/" + encodedParam! + query
-    } else {
-        routeUrlString + query
-    }
-    
-    guard let url = URL(string: fullUrlString) else { return nil }
-    var request = URLRequest(url: url)
-    request.httpMethod = method
-    
-    return request
-}
-
-struct MetadataResponse: Codable {
-    let message: String?
-    let body: [Metadata]
-}
-
-struct UploadResponse: Codable {
-    let message: String?
-}
-
 struct DataUrl: Transferable {
     let url: URL
 
