@@ -11,53 +11,131 @@ struct ConfigurationView: View {
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     @Binding var show: Bool
+    @ObservedObject var storageApi: StorageApi
     
     @State var apiHostInput: String = ""
     @State var apiKeyInput: String = ""
+    @State var isApiHealthy: Bool?
+    @FocusState private var focusedField: String?
+    
+    var isInputEmpty: Bool { apiHostInput.isEmpty || apiKeyInput.isEmpty }
 
     var body: some View {
-        Section {
-            Text("Configuration")
-                .font(.system(size: 24, weight: .bold))
-                .frame(alignment: Alignment.leading)
-                .padding(.top, 30.0)
-                .padding(.bottom, 10.0)
-            Text("To setup your own storage server:")
-            Link("Go to Github repository", destination: URL(string: "https://github.com/hoiekim/storage")!)
-        }
-        List {
+        VStack {
             Section {
-                TextField("Server Address", text: $apiHostInput)
-                    .textContentType(.URL)
-                    .autocapitalization(.none)
-                TextField("API Key", text: $apiKeyInput)
-                    .textContentType(.password)
-                    .autocapitalization(.none)
+                Text("Server Configuration")
+                    .font(.system(size: 24, weight: .bold))
+                    .frame(alignment: .leading)
+                    .padding(.top, 30.0)
+                    .padding(.bottom, 10.0)
+                Text("This app requires a storage server setup.\nPlease configure your server details below.")
+                    .multilineTextAlignment(.center)
+                    .padding(.leading, 30.0)
+                    .padding(.trailing, 30.0)
+                    .padding(.top, 30.0)
+                    .padding(.bottom, 10.0)
+                Link("Tap to see instruction", destination: URL(
+                    string: "https://github.com/hoiekim/storage"
+                )!)
             }
-            Section {
-                Button(action: onSave) {
-                    Text("Save")
+            List {
+                Section {
+                    TextField("Server Address", text: $apiHostInput)
+                        .textContentType(.URL)
+                        .autocapitalization(.none)
+                        .focused($focusedField, equals: "apiHostInput")
+                    TextField("API Key", text: $apiKeyInput)
+                        .textContentType(.password)
+                        .autocapitalization(.none)
+                        .focused($focusedField, equals: "apiKeyInput")
+                } footer: {
+                    if isInputEmpty {
+                        Text("Server Address and API Key are required.")
+                            .font(.system(size: 14))
+                    } else if isApiHealthy == true {
+                        Text("Successfully connected with the server.")
+                            .font(.system(size: 14))
+                    } else if isApiHealthy == false {
+                        Text("Failed to connect to the server. Please make sure the server is running, and the address and API key are correct.")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.red)
+                    }
                 }
-                Button(action: onCancel) {
-                    Text("Cancel")
+                Section {
+                    Button(action: onSave) {
+                        Text("Save")
+                    }
+                    Button(action: onCancel) {
+                        Text("Cancel")
+                    }
                 }
             }
+            .onAppear {
+                apiHostInput = apiHost
+                apiKeyInput = apiKey
+                if isInputEmpty {
+                    if apiHostInput.isEmpty {
+                        focusedField = "apiHostInput"
+                    } else {
+                        focusedField = "apiKeyInput"
+                    }
+                } else {
+                    Task {
+                        await updateHealth()
+                    }
+                }
+            }
+            .padding()
+            
+            Spacer()
         }
-        .onAppear {
-            apiHostInput = apiHost
-            apiKeyInput = apiKey
-        }
-        .padding()
+        .interactiveDismissDisabled(isApiHealthy != true)
     }
     
     private func onSave() {
-        apiHost = apiHostInput
-        apiKey = apiKeyInput
-        show = false
+        Task {
+            apiHost = apiHostInput
+            apiKey = apiKeyInput
+            if await updateHealth() {
+                do { try? await Task.sleep(nanoseconds: 500_000_000) }
+                show = false
+            }
+        }
     }
     
     private func onCancel() {
-        show = false
+        Task {
+            if await updateHealth() {
+                show = false
+            }
+        }
+    }
+    
+    private func closeIfHealthy() async {
+        if await updateHealth() {
+            do { try? await Task.sleep(nanoseconds: 500_000_000) }
+            show = false
+        }
+    }
+    
+    private func updateHealth() async -> Bool {
+        if apiHostInput.isEmpty {
+            focusedField = "apiHostInput"
+            isApiHealthy = nil
+            return false
+        } else if apiKeyInput.isEmpty {
+            focusedField = "apiKeyInput"
+            isApiHealthy = nil
+            return false
+        }
+        
+        if await storageApi.healthCheck() {
+            isApiHealthy = true
+            return true
+        } else {
+            isApiHealthy = false
+            return false
+        }
     }
 }
 

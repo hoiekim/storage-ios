@@ -31,7 +31,7 @@ struct Metadata: Identifiable, Codable, Equatable {
 func getUrlRequest(
     apiHost: String,
     apiKey: String,
-    route: String,
+    route: String = "",
     parameter: String? = nil,
     method: String? = "GET"
 ) -> URLRequest? {
@@ -76,6 +76,33 @@ class StorageApi: ObservableObject {
     private var fetchThumbnailTasks: [String: Task<Void, Never>] = [:]
     
     let isoFormatter = ISO8601DateFormatter()
+    
+    func healthCheck() async -> Bool {
+        guard let request = getUrlRequest(
+            apiHost: self.apiHost,
+            apiKey: self.apiKey
+        ) else { return false }
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+        
+            if let response = response as? HTTPURLResponse {
+                let json = try JSONDecoder().decode(UploadResponse.self, from: data)
+                let statusCode = response.statusCode
+                let message = json.message ?? "Unknown"
+                if statusCode == 200 {
+                    return true
+                } else {
+                    print("Health check failed(\(statusCode)): \(message)")
+                }
+            }
+        } catch {
+            print("Error decoding metadata")
+            print(error)
+        }
+        
+        return false
+    }
     
     func fetchMetadata() {
         self.photos = []

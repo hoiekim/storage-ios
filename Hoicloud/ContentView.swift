@@ -26,7 +26,7 @@ struct ContentView: View {
         GridItem(.flexible(), spacing: 2)
     ]
     
-    var anyOfMultiple: [String] {[apiHost, apiKey]}
+    var anyOfMultiple: [String] {[apiHost, apiKey, showConfiguration.description]}
     
     var body: some View {
         ZStack {
@@ -44,11 +44,23 @@ struct ContentView: View {
                         if apiHost.isEmpty || apiKey.isEmpty {
                             showConfiguration = true
                         } else {
-                            storageApi.fetchMetadata()
+                            Task {
+                                if await storageApi.healthCheck() {
+                                    storageApi.fetchMetadata()
+                                } else {
+                                    showConfiguration = true
+                                }
+                            }
                         }
                     }
                     .onChange(of: anyOfMultiple) {
-                        storageApi.fetchMetadata()
+                        Task {
+                            if await storageApi.healthCheck() {
+                                storageApi.fetchMetadata()
+                            } else {
+                                showConfiguration = true
+                            }
+                        }
                     }
                     .fullScreenCover(isPresented: $showFullScreen) {
                         FullImageView(
@@ -123,7 +135,10 @@ struct ContentView: View {
                         }
                     }
                     .sheet(isPresented: $showConfiguration) {
-                        ConfigurationView(show: $showConfiguration)
+                        ConfigurationView(
+                            show: $showConfiguration,
+                            storageApi: storageApi
+                        )
                     }
                     .sheet(isPresented: $showAddItemSheet) {
                         ImagePickerView(
