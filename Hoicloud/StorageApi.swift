@@ -66,7 +66,7 @@ struct UploadResponse: Codable {
     let message: String?
 }
 
-class StorageApi: ObservableObject {
+class StorageApi: ObservableObject, @unchecked Sendable {
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     
