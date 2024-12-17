@@ -26,6 +26,8 @@ struct ContentView: View {
         GridItem(.flexible(), spacing: 2)
     ]
     
+    var numberOfPhotos: Int { storageApi.photos.count }
+    
     var anyOfMultiple: [String] {[apiHost, apiKey, showConfiguration.description]}
     
     var body: some View {
@@ -33,9 +35,18 @@ struct ContentView: View {
             NavigationView {
                 ZStack {
                     ScrollView {
-                        LazyVGrid(columns: columns, spacing: 1) {
-                            ForEach(storageApi.photos) { photo in
-                                renderStack(photo)
+                        if numberOfPhotos == 0 {
+                            Text("Your cloud is empty")
+                                .multilineTextAlignment(.center)
+                                .padding(.top, 30.0)
+                                .padding(.bottom, 10.0)
+                                .padding(.leading, 10.0)
+                                .padding(.trailing, 10.0)
+                        } else {
+                            LazyVGrid(columns: columns, spacing: 1) {
+                                ForEach(storageApi.photos) { photo in
+                                    renderStack(photo)
+                                }
                             }
                         }
                     }
