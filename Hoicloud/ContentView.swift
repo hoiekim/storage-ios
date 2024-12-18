@@ -50,6 +50,7 @@ struct ContentView: View {
                             }
                         }
                     }
+                    .frame(maxWidth: .infinity)
                     .navigationTitle("Hoicloud")
                     .onAppear {
                         if apiHost.isEmpty || apiKey.isEmpty {
@@ -184,6 +185,7 @@ struct ContentView: View {
                     }
                 }
             }
+            .navigationViewStyle(StackNavigationViewStyle())
             .preferredColorScheme(.dark)
             
             VStack {

@@ -278,8 +278,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Hoicloud/Info.plist;
-				INFOPLIST_KEY_NSCameraUsageDescription = "This app requires access to your camera";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app requires access to your photo library";
+				INFOPLIST_KEY_NSCameraUsageDescription = "The app uploads media files to user-configured server";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "The app uploads media files to user-configured server";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -314,8 +314,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Hoicloud/Info.plist;
-				INFOPLIST_KEY_NSCameraUsageDescription = "This app requires access to your camera";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "This app requires access to your photo library";
+				INFOPLIST_KEY_NSCameraUsageDescription = "The app uploads media files to user-configured server";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "The app uploads media files to user-configured server";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
