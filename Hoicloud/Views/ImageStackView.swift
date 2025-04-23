@@ -69,7 +69,7 @@ struct ImageStackView: View {
                     .frame(height: tileHeight)
                     .overlay(ProgressView())
                     .onAppear {
-                        storageApi.fetchThumbnail(
+                        storageApi.downloadThumbnail(
                             id: filekey
                         )
                     }

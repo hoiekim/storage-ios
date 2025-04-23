@@ -17,7 +17,7 @@ struct ContentView: View {
     @State private var selectedItem: Metadata? = nil
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
-    @StateObject private var storageApi = StorageApi()
+    @StateObject private var storageApi = StorageApi.shared
     @StateObject private var progress = Progress()
     
     let columns = [
@@ -58,7 +58,7 @@ struct ContentView: View {
                         } else {
                             Task {
                                 if await storageApi.healthCheck() {
-                                    storageApi.fetchMetadata()
+                                    storageApi.downloadMetadata()
                                 } else {
                                     showConfiguration = true
                                 }
@@ -68,7 +68,7 @@ struct ContentView: View {
                     .onChange(of: anyOfMultiple) {
                         Task {
                             if await storageApi.healthCheck() {
-                                storageApi.fetchMetadata()
+                                storageApi.downloadMetadata()
                             } else {
                                 showConfiguration = true
                             }
@@ -209,7 +209,7 @@ struct ContentView: View {
         }
         .refreshable {
             print("refreshing")
-            storageApi.fetchMetadata()
+            storageApi.downloadMetadata()
         }
     }
     

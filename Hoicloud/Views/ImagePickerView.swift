@@ -55,7 +55,7 @@ struct ImagePickerView: View {
                 }
             }
             for item in selectedItems {
-                await storageApi.uploadFile(item: item)
+                await storageApi.uploadItem(item: item)
                 if let itemId = item.itemIdentifier {
                     progress.complete(id: itemId)
                 }

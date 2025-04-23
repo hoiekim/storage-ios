@@ -28,6 +28,29 @@ struct Metadata: Identifiable, Codable, Equatable {
     }
 }
 
+func appendApiKey(
+    to urlString: String,
+    with apiKey: String
+) -> String {
+    return urlString + "?api_key=" + apiKey
+}
+
+func constructApiUrl(
+    apiHost: String,
+    apiKey: String,
+    route: String = "",
+    parameter: String? = nil
+) -> String {
+    var routeUrlString = apiHost + "/" + route
+    let encodedParam = parameter?.addingPercentEncoding(
+        withAllowedCharacters: .urlHostAllowed
+    )
+    if encodedParam != nil {
+        routeUrlString = routeUrlString + "/" + encodedParam!
+    }
+    return appendApiKey(to: routeUrlString, with: apiKey)
+}
+
 func getUrlRequest(
     apiHost: String,
     apiKey: String,
@@ -38,17 +61,13 @@ func getUrlRequest(
     if apiHost.isEmpty || apiKey.isEmpty {
         return nil
     }
-    
-    let query = "?api_key=" + apiKey
-    let routeUrlString = apiHost + "/" + route
-    let encodedParam = parameter?.addingPercentEncoding(
-        withAllowedCharacters: .urlHostAllowed
+
+    let fullUrlString = constructApiUrl(
+        apiHost: apiHost,
+        apiKey: apiKey,
+        route: route,
+        parameter: parameter
     )
-    let fullUrlString = if encodedParam != nil {
-        routeUrlString + "/" + encodedParam! + query
-    } else {
-        routeUrlString + query
-    }
     
     guard let url = URL(string: fullUrlString) else { return nil }
     var request = URLRequest(url: url)
@@ -67,13 +86,27 @@ struct UploadResponse: Codable {
 }
 
 class StorageApi: ObservableObject, @unchecked Sendable {
+    static let shared = StorageApi()
+    
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     
     @Published var photos: [Metadata] = []
     @Published var thumbnails: [String: UIImage] = [:]
-    private var fetchMetadataTask: Task<Void, Never>?
-    private var fetchThumbnailTasks: [String: Task<Void, Never>] = [:]
+    private var downloadMetadataTask: Task<Void, Never>?
+    private var downloadThumbnailTasks: [String: Task<Void, Never>] = [:]
+    
+    private var _tusUtil: TusUtil?
+    var tusUtil: TusUtil {
+        if _tusUtil == nil {
+            print("initializing tusUtil")
+            _tusUtil = TusUtil(apiHost: apiHost, apiKey: apiKey)
+        } else if _tusUtil!._apiHost != apiHost || _tusUtil!._apiKey != apiKey {
+            print("initializing tusUtil")
+            _tusUtil = TusUtil(apiHost: apiHost, apiKey: apiKey)
+        }
+        return _tusUtil!
+    }
     
     let isoFormatter = ISO8601DateFormatter()
     
@@ -97,14 +130,14 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                 }
             }
         } catch {
-            print("Error decoding metadata")
+            print("Error decoding response")
             print(error)
         }
         
         return false
     }
     
-    func fetchMetadata() {
+    func downloadMetadata() {
         self.photos = []
         
         guard let request = getUrlRequest(
@@ -113,30 +146,26 @@ class StorageApi: ObservableObject, @unchecked Sendable {
             route: "metadata"
         ) else { return }
         
-        fetchMetadataTask?.cancel()
-        fetchMetadataTask = Task {
+        downloadMetadataTask?.cancel()
+        downloadMetadataTask = Task {
             do {
                 try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
                 guard !Task.isCancelled else { return }
                 
                 let (data, _) = try await URLSession.shared.data(for: request)
 
-                let decoded = try JSONDecoder().decode(MetadataResponse.self, from: data)
-                guard let body = decoded.body else {
-                    print("No data returned: \(decoded.message ?? "Unknown")")
+                let decoded = try? JSONDecoder().decode(MetadataResponse.self, from: data)
+                
+                guard let body = decoded?.body else {
+                    print("No data returned: \(decoded?.message ?? "Unknown")")
                     return
                 }
                 
                 guard !Task.isCancelled else { return }
                 
                 DispatchQueue.main.async {
-                    for file in body {
-                        let isAae = file.filename.lowercased().reversed().starts(
-                            with: ".aae".reversed()
-                        )
-                        if !isAae {
-                            self.photos.append(file)
-                        }
+                    for metadata in body {
+                        self.photos.append(metadata)
                     }
                     self.photos.sort {
                         let s1 = $0.created ?? $0.uploaded
@@ -149,13 +178,63 @@ class StorageApi: ObservableObject, @unchecked Sendable {
             }
         }
     }
+    
+    enum MetadataRouteName: String {
+        case metadataById, metadataByFilekey, metadataByItemId
+        var value: String {
+            switch self {
+            case .metadataById: return "metadata-by-id"
+            case .metadataByFilekey: return "metadata-by-filekey"
+            case .metadataByItemId: return "metadata-by-item-id"
+            }
+        }
+    }
+    
+    func getMetadata(route: MetadataRouteName, parameter: String? = nil) async -> Metadata? {
+        guard let request = getUrlRequest(
+            apiHost: self.apiHost,
+            apiKey: self.apiKey,
+            route: route.value,
+            parameter: parameter
+        ) else {
+            return nil
+        }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let decoded = try? JSONDecoder().decode(MetadataResponse.self, from: data)
+            
+            guard let body = decoded?.body else {
+                print("No data returned: \(decoded?.message ?? "Unknown")")
+                return nil
+            }
+            
+            let metadata = body[0]
+            return metadata
+        } catch {
+            print("Error fetching metadata: \(error)")
+            return nil
+        }
+    }
+    
+    func getMetadataById(id: String) async -> Metadata? {
+        return await getMetadata(route: .metadataById, parameter: id)
+    }
+    
+    func getMetadataByFilekey(filekey: String) async -> Metadata? {
+        return await getMetadata(route: .metadataByFilekey, parameter: filekey)
+    }
+    
+    func getMetadataByItemId(itemId: String) async -> Metadata? {
+        return await getMetadata(route: .metadataByItemId, parameter: itemId)
+    }
 
-    func fetchThumbnail(id: String) {
+    func downloadThumbnail(id: String) {
         guard thumbnails[id] == nil else { return }
         
         // Cancel any existing task for this identifier
-        fetchThumbnailTasks[id]?.cancel()
-        fetchThumbnailTasks[id] = Task {
+        downloadThumbnailTasks[id]?.cancel()
+        downloadThumbnailTasks[id] = Task {
             do {
                 try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
                 guard !Task.isCancelled else { return }
@@ -188,8 +267,8 @@ class StorageApi: ObservableObject, @unchecked Sendable {
     }
     
     func cancelThumbnailFetch(for id: String) {
-        fetchThumbnailTasks[id]?.cancel()
-        fetchThumbnailTasks[id] = nil
+        downloadThumbnailTasks[id]?.cancel()
+        downloadThumbnailTasks[id] = nil
     }
     
     func getFullImageRequest(filekey: String) -> URLRequest? {
@@ -214,52 +293,38 @@ class StorageApi: ObservableObject, @unchecked Sendable {
         }
     }
     
-    func uploadFile(item: PhotosPickerItem) async {
-        let itemId = item.itemIdentifier
-        guard var request = getUrlRequest(
-            apiHost: self.apiHost,
-            apiKey: self.apiKey,
-            route: "file",
-            parameter: itemId,
-            method: "POST"
-        ) else { return }
-        
-        print("Sending request to upload photo: \(item.itemIdentifier ?? "Unknown")")
-        
-        let boundary = UUID().uuidString
-        guard let body = await prepareFileToUpload(item: item, boundary: boundary) else {
-            print("No body to include in upload request")
-            return
-        }
-        
-        request.setValue(
-            "multipart/form-data; boundary=\(boundary)",
-            forHTTPHeaderField: "Content-Type"
-        )
-        request.httpBody = body
-        
+    func uploadItem(item: PhotosPickerItem) async {
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                self.fetchMetadata()
-                cleanTemporaryData()
-            }
-        
-            if let response = response as? HTTPURLResponse {
-                let json = try JSONDecoder().decode(UploadResponse.self, from: data)
-                let statusCode = response.statusCode
-                let message = json.message ?? "Unknown"
-                if 200 <= statusCode && statusCode < 300 {
-                    print("Upload successful(\(statusCode)): \(message)")
-                } else {
-                    print("Upload failed(\(statusCode)): \(message)")
+            let fileUrl = try await item.loadTransferable(type: ClonedDataUrl.self)!
+            let url = fileUrl.url
+            let itemId = item.itemIdentifier ?? getHash(url: url)
+            if itemId != nil {
+                let existing = await getMetadataByItemId(itemId: itemId!)
+                if existing != nil {
+                    print("Item already uploaded: \(itemId!)")
+                    return
                 }
+                await tusUtil.uploadWithUrl(url: url, itemId: itemId!)
+                startUploads()
             }
         } catch {
-            print("Error decoding metadata")
+            print("Failed to upload item: \(item)")
             print(error)
         }
+    }
+    
+    func uploadWithUrl(url: URL, itemId: String) async {
+        let existing = await getMetadataByItemId(itemId: itemId)
+        if existing != nil {
+            print("Item already uploaded: \(itemId)")
+            return
+        }
+        await tusUtil.uploadWithUrl(url: url, itemId: itemId)
+        startUploads()
+    }
+    
+    func startUploads() {
+        tusUtil.startUploads()
     }
     
     func deleteFile(photo: Metadata) async {
@@ -278,7 +343,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
             with: request
         ) { data, response, error in
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                self.fetchMetadata()
+                self.downloadMetadata()
             }
             
             guard let data = data, error == nil else {
@@ -306,8 +371,3 @@ class StorageApi: ObservableObject, @unchecked Sendable {
         task.resume()
     }
 }
-
-#Preview {
-    ContentView()
-}
-

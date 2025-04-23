@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tus/TusKit.git",
       "state" : {
-        "revision" : "915bb14bfb8919ae507c64c78a8bec683794e687",
-        "version" : "3.4.1"
+        "revision" : "55556412c89ab1dc35a84b8ccbc61e339c8b40fc",
+        "version" : "3.5.0"
       }
     }
   ],

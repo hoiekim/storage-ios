@@ -9,5 +9,9 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to sync photos and videos to the server.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We also upload new photos/videos you capture.</string>
 </dict>
 </plist>
