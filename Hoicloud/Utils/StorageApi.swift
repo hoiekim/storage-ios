@@ -98,10 +98,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
     
     private var _tusUtil: TusUtil?
     var tusUtil: TusUtil {
-        if _tusUtil == nil {
-            print("initializing tusUtil")
-            _tusUtil = TusUtil(apiHost: apiHost, apiKey: apiKey)
-        } else if _tusUtil!._apiHost != apiHost || _tusUtil!._apiKey != apiKey {
+        if _tusUtil == nil || _tusUtil!._apiHost != apiHost || _tusUtil!._apiKey != apiKey {
             print("initializing tusUtil")
             _tusUtil = TusUtil(apiHost: apiHost, apiKey: apiKey)
         }
@@ -305,7 +302,6 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                     return
                 }
                 await tusUtil.uploadWithUrl(url: url, itemId: itemId!)
-                startUploads()
             }
         } catch {
             print("Failed to upload item: \(item)")
@@ -320,11 +316,12 @@ class StorageApi: ObservableObject, @unchecked Sendable {
             return
         }
         await tusUtil.uploadWithUrl(url: url, itemId: itemId)
-        startUploads()
     }
     
-    func startUploads() {
-        tusUtil.startUploads()
+    func waitForUpload(lowerThan: Int) async {
+        while tusUtil.remainingUploads() >= lowerThan {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+        }
     }
     
     func deleteFile(photo: Metadata) async {

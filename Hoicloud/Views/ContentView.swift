@@ -18,7 +18,7 @@ struct ContentView: View {
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     @StateObject private var storageApi = StorageApi.shared
-    @StateObject private var progress = Progress()
+    @StateObject private var progress = Progress.shared
     
     let columns = [
         GridItem(.flexible(), spacing: 2),

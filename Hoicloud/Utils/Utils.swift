@@ -29,6 +29,37 @@ struct ClonedDataUrl: Transferable {
     }
 }
 
+func cleanTemporaryDirectory(olderThan days: Int = 2) {
+    Task {
+        let fileManager = FileManager.default
+        let tempDirURL = fileManager.temporaryDirectory
+        let calendar = Calendar.current
+
+        do {
+            let fileURLs = try fileManager.contentsOfDirectory(
+                at: tempDirURL,
+                includingPropertiesForKeys: [.contentModificationDateKey],
+                options: []
+            )
+            
+            for fileURL in fileURLs {
+                let resourceValues = try fileURL.resourceValues(
+                    forKeys: [.contentModificationDateKey]
+                )
+                
+                if let modificationDate = resourceValues.contentModificationDate,
+                   let cutoffDate = calendar.date(byAdding: .day, value: -days, to: Date()),
+                   modificationDate < cutoffDate {
+                    try fileManager.removeItem(at: fileURL)
+                    print("Deleted: \(fileURL.lastPathComponent)")
+                }
+            }
+        } catch {
+            print("Error cleaning temp directory: \(error)")
+        }
+    }
+}
+
 class Progress: ObservableObject {
     @Published var dict: [String: Bool] = [:]
     

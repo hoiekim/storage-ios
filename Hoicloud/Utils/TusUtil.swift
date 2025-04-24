@@ -46,6 +46,7 @@ final class TusUtil {
     
     func uploadWithUrl(url: URL, itemId: String) async {
         do {
+            print("url: \(url), itemId: \(itemId)")
             let filename = url.lastPathComponent
             var uploadMetadata = ["filename": filename]
             uploadMetadata["itemId"] = itemId
@@ -71,8 +72,8 @@ final class TusUtil {
         }
     }
     
-    func startUploads() {
-        tusClient.start()
+    func remainingUploads() -> Int {
+        return tusClient.remainingUploads
     }
 }
 
@@ -102,12 +103,6 @@ extension TusUtil: TUSClientDelegate {
         client: TUSKit.TUSClient
     ) {
         print("TUSClient finished upload, id is \(id) url is \(url)")
-        do {
-            let fm = FileManager.default
-            try fm.removeItem(atPath: url.path)
-        } catch {
-            print("Failed to clean temporary data: \(error)")
-        }
     }
     
     func uploadFailed(

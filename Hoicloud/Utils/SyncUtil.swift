@@ -9,6 +9,8 @@ import Foundation
 import Photos
 import UIKit
 
+private let SYNC_BATCH_SIZE = 20
+
 final class SyncUtil: NSObject, PHPhotoLibraryChangeObserver {
     
     static let shared = SyncUtil()
@@ -45,41 +47,48 @@ final class SyncUtil: NSObject, PHPhotoLibraryChangeObserver {
     }
 
     func photoLibraryDidChange(_ changeInstance: PHChange) {
-        DispatchQueue.main.async {
+        DispatchQueue.global(qos: .background).async {
             self.syncNewAssets()
         }
     }
-
-    private func syncNewAssets() {
-        let newAssets = fetchNewAssets(since: lastSyncedDate)
-        guard !newAssets.isEmpty else { return }
-
-        for asset in newAssets {
-            requestURL(for: asset) { url in
-                guard let fileUrl = url else { return }
-                Task {
-                    await self.storageApi.uploadWithUrl(
-                        url: fileUrl,
-                        itemId: asset.localIdentifier
-                    )
-                }
-            }
-            if let assetDate = asset.creationDate {
-                if lastSyncedDate == nil || assetDate > lastSyncedDate! {
-                    lastSyncedDate = assetDate
+    
+    
+    func syncNewAssets() {
+        DispatchQueue.global(qos: .background).async {
+            Task {
+                var newAssets: [PHAsset] = self.fetchNewAssets(since: self.lastSyncedDate)
+                
+                while !newAssets.isEmpty {
+                    for asset in newAssets {
+                        guard let url = await self.getAssetUrl(for: asset) else { continue }
+                        
+                        await self.storageApi.uploadWithUrl(
+                            url: url,
+                            itemId: asset.localIdentifier
+                        )
+                        
+                        if let assetDate = asset.creationDate {
+                            if self.lastSyncedDate == nil || assetDate > self.lastSyncedDate! {
+                                self.lastSyncedDate = assetDate
+                            }
+                        }
+                    }
+                    
+                    await self.storageApi.waitForUpload(lowerThan: SYNC_BATCH_SIZE)
+                    newAssets = self.fetchNewAssets(since: self.lastSyncedDate)
                 }
             }
         }
-        
-        self.storageApi.startUploads()
     }
 
     private func fetchNewAssets(since date: Date?) -> [PHAsset] {
         let options = PHFetchOptions()
+        options.fetchLimit = SYNC_BATCH_SIZE
+        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
         if let date = date {
             options.predicate = NSPredicate(format: "creationDate > %@", date as NSDate)
         }
-        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
+        
         let result = PHAsset.fetchAssets(with: options)
 
         var assets: [PHAsset] = []
@@ -88,20 +97,23 @@ final class SyncUtil: NSObject, PHPhotoLibraryChangeObserver {
                 assets.append(asset)
             }
         }
+        
         return assets
     }
 
-    private func requestURL(for asset: PHAsset, completion: @escaping (URL?) -> Void) {
-        let options = PHContentEditingInputRequestOptions()
-        options.isNetworkAccessAllowed = true
+    private func getAssetUrl(for asset: PHAsset) async -> URL? {
+        await withCheckedContinuation { continuation in
+            let options = PHContentEditingInputRequestOptions()
+            options.isNetworkAccessAllowed = true
 
-        asset.requestContentEditingInput(with: options) { input, _ in
-            if let url = input?.fullSizeImageURL {
-                completion(url)
-            } else if let asset = input?.audiovisualAsset as? AVURLAsset {
-                completion(asset.url)
-            } else {
-                completion(nil)
+            asset.requestContentEditingInput(with: options) { input, _ in
+                if let url = input?.fullSizeImageURL {
+                    continuation.resume(returning: url)
+                } else if let asset = input?.audiovisualAsset as? AVURLAsset {
+                    continuation.resume(returning: asset.url)
+                } else {
+                    continuation.resume(returning: nil)
+                }
             }
         }
     }
