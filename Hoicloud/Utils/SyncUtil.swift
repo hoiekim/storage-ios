@@ -11,7 +11,7 @@ import UIKit
 
 private let SYNC_BATCH_SIZE = 20
 
-final class SyncUtil: NSObject, PHPhotoLibraryChangeObserver {
+final class SyncUtil {
     
     static let shared = SyncUtil()
     
@@ -27,57 +27,49 @@ final class SyncUtil: NSObject, PHPhotoLibraryChangeObserver {
         }
     }
     
-    private override init() {
-        super.init()
-        PHPhotoLibrary.shared().register(self)
-    }
-    
-    deinit {
-        PHPhotoLibrary.shared().unregisterChangeObserver(self)
-    }
-
-    func start() {
-        PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
-            guard status == .authorized || status == .limited else {
-                print("Photo access not granted")
-                return
+    func start() async {
+        print("sync started")
+        
+        // Check photo library authorization status
+        let status = await withCheckedContinuation { continuation in
+            PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
+                continuation.resume(returning: status)
             }
-            self.syncNewAssets()
         }
-    }
-
-    func photoLibraryDidChange(_ changeInstance: PHChange) {
-        DispatchQueue.global(qos: .background).async {
-            self.syncNewAssets()
+        
+        guard status == .authorized || status == .limited else {
+            print("Photo access not granted")
+            return
         }
+        
+        await syncNewAssets()
     }
     
     
-    func syncNewAssets() {
-        DispatchQueue.global(qos: .background).async {
-            Task {
-                var newAssets: [PHAsset] = self.fetchNewAssets(since: self.lastSyncedDate)
+    func syncNewAssets() async {
+        print("syncNewAssets called")
+        await self.storageApi.waitForUpload(lowerThan: SYNC_BATCH_SIZE)
+        var newAssets: [PHAsset] = self.fetchNewAssets(since: self.lastSyncedDate)
+        
+        while !newAssets.isEmpty {
+            for asset in newAssets {
+                guard let url = await self.getAssetUrl(for: asset) else { continue }
                 
-                while !newAssets.isEmpty {
-                    for asset in newAssets {
-                        guard let url = await self.getAssetUrl(for: asset) else { continue }
-                        
-                        await self.storageApi.uploadWithUrl(
-                            url: url,
-                            itemId: asset.localIdentifier
-                        )
-                        
-                        if let assetDate = asset.creationDate {
-                            if self.lastSyncedDate == nil || assetDate > self.lastSyncedDate! {
-                                self.lastSyncedDate = assetDate
-                            }
-                        }
+                await self.storageApi.uploadWithUrl(
+                    url: url,
+                    itemId: asset.localIdentifier
+                )
+                
+                if let assetDate = asset.creationDate {
+                    if self.lastSyncedDate == nil || assetDate > self.lastSyncedDate! {
+                        self.lastSyncedDate = assetDate
                     }
-                    
-                    await self.storageApi.waitForUpload(lowerThan: SYNC_BATCH_SIZE)
-                    newAssets = self.fetchNewAssets(since: self.lastSyncedDate)
                 }
             }
+            
+            await self.storageApi.waitForUpload(lowerThan: SYNC_BATCH_SIZE)
+            newAssets = self.fetchNewAssets(since: self.lastSyncedDate)
+            print("syncNewAssets finished a batch. lastSyncedDate: \(String(describing: self.lastSyncedDate))")
         }
     }
 

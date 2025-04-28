@@ -22,69 +22,104 @@ struct HoicloudApp: App {
 
 private let SYNC_TASK_ID = "kim.hoie.Hoicloud.sync"
 
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        print("registering background task")
+        print("Registering background task with identifier: \(SYNC_TASK_ID)")
+        
         BGTaskScheduler.shared.register(
             forTaskWithIdentifier: SYNC_TASK_ID,
-            using: nil
-        ) { task in
+            using: DispatchQueue.global()
+        ) { [weak self] task in
+            print("Background task handler called!")
+            guard let self = self else { return }
             self.handlePhotoSyncTask(task: task as! BGProcessingTask)
         }
         
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appMovedToBackground),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appWillTerminate),
+            name: UIApplication.willTerminateNotification,
+            object: nil
+        )
         
         BGTaskScheduler.shared.getPendingTaskRequests { requests in
-            print("Pending background task requests: \(requests)")
+            print("Pending background task requests at launch: \(requests)")
         }
 
-        print("cleaning temporary directory")
+        print("Cleaning temporary directory")
         cleanTemporaryDirectory(olderThan: 2)
         
         return true
     }
     
-    // Called when the app enters the background
-    func applicationDidEnterBackground(_ application: UIApplication) {
+    @objc func appMovedToBackground() {
         scheduleBackgroundPhotoSync()
     }
     
+    @objc func appWillTerminate() {
+    }
+    
     func scheduleBackgroundPhotoSync() {
-        // Cancel any existing task with the same identifier
+        print("Attempting to schedule background task...")
         BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: SYNC_TASK_ID)
         
-        let request = BGProcessingTaskRequest(identifier: SYNC_TASK_ID)
-        request.requiresNetworkConnectivity = true
-        request.requiresExternalPower = true
-        
-        // Set earliest begin date to ensure the task doesn't run immediately
-        // This helps avoid the "app in foreground" error
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60) // 15 minutes from now
-        
         do {
+            let request = BGProcessingTaskRequest(identifier: SYNC_TASK_ID)
+            request.requiresNetworkConnectivity = true
+            // For testing, don't require external power
+            request.requiresExternalPower = false
+            
+            // Set earliest begin date to a very short time for testing
+            request.earliestBeginDate = Date(timeIntervalSinceNow: 15)
             try BGTaskScheduler.shared.submit(request)
-            print("Background task scheduled successfully")
+            print("✅ Background task scheduled successfully")
         } catch {
-            print("Failed to submit background task: \(error)")
+            print("❌ Failed to submit background task: \(error)")
+            
+            if let nsError = error as NSError? {
+                print("Error domain: \(nsError.domain)")
+                print("Error code: \(nsError.code)")
+                print("Error description: \(nsError.localizedDescription)")
+            }
         }
     }
 
     private func handlePhotoSyncTask(task: BGProcessingTask) {
-        let operation = BlockOperation {
-            SyncUtil.shared.start()
-        }
-
+        print("🔄 Background task started - executing sync operation")
+        
+        let taskID = UUID()
+        print("Background task ID: \(taskID)")
+        
         task.expirationHandler = {
-            operation.cancel()
+            print("⚠️ Background task \(taskID) expired")
         }
-
-        operation.completionBlock = {
-            task.setTaskCompleted(success: !operation.isCancelled)
+        
+        Task {
+            print("Starting sync operation for task \(taskID)...")
+            await SyncUtil.shared.start()
+            print("✅ Sync operation completed for task \(taskID)")
+            
+            task.setTaskCompleted(success: true)
+            
+            print("Scheduling next background task after \(taskID)...")
+            self.scheduleBackgroundPhotoSync()
         }
-
-        OperationQueue().addOperation(operation)
     }
     
+    // For debugging: Launch the app in background mode
+    func application(_ application: UIApplication, performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        print("Background fetch called")
+        scheduleBackgroundPhotoSync()
+        completionHandler(.newData)
+    }
 }

@@ -26,7 +26,7 @@ final class TusUtil {
         tusClient = try! TUSClient(
             server: URL(string: "\(apiHost)/tus")!,
             sessionIdentifier: "hoicloud_main_session",
-            sessionConfiguration: .background(withIdentifier: "TUSKit.\(apiHost).\(apiKey).background"),
+            sessionConfiguration: .background(withIdentifier: "kim.hoie.Hoicloud.tus"),
             storageDirectory: URL(string: "/tus")!,
             chunkSize: 0
         )
@@ -48,13 +48,20 @@ final class TusUtil {
         do {
             print("url: \(url), itemId: \(itemId)")
             let filename = url.lastPathComponent
-            var uploadMetadata = ["filename": filename]
+            var uploadMetadata = [
+                "itemId": itemId,
+                "filename": filename
+            ]
             uploadMetadata["itemId"] = itemId
             let customHeaders = [
                 "Authorization": "Bearer \(_apiKey)",
                 "Upload-Metadata": stringifyMetadata(uploadMetadata)
             ]
-            try tusClient.uploadFileAt(filePath: url, customHeaders: customHeaders)
+            try tusClient.uploadFileAt(
+                filePath: url,
+                customHeaders: customHeaders,
+                context: uploadMetadata
+            )
         } catch {
             print("Failed to upload: \(url), \(itemId)")
             print(error)
