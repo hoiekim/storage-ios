@@ -8,20 +8,41 @@
 import SwiftUI
 
 struct ImageStackView: View {
-    @ObservedObject var storageApi: StorageApi
+    @ObservedObject var storageApi: StorageApi = StorageApi.shared
+    
     var photo: Metadata
-    @Binding var showFullScreen: Bool
-    @Binding var selectedItem: Metadata?
     @Binding var selectedItems: [Metadata]
     @Binding var isSelecting: Bool
-    
     @State var isSelected: Bool = false
     
     var body: some View {
-        let screenWidth = UIScreen.main.bounds.width
-        let tileHeight = screenWidth / 3
-        
+        if isSelecting {
+            stackView().onTapGesture {
+                if isSelecting {
+                    if isSelected {
+                        selectedItems.removeAll(where: { $0 == photo })
+                        isSelected = false
+                    } else {
+                        selectedItems.append(photo)
+                        isSelected = true
+                    }
+                }
+            }
+            .onChange(of: isSelecting) {
+                isSelected = false
+            }
+        } else {
+            NavigationLink(destination: FullImageView(photo: photo)) {
+                stackView()
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func stackView() -> some View {
         VStack {
+            let screenWidth = UIScreen.main.bounds.width
+            let tileHeight = screenWidth / 3
             let filekey = photo.filekey
             if let thumbnail = storageApi.thumbnails[filekey] {
                 Image(uiImage: thumbnail)
@@ -77,22 +98,6 @@ struct ImageStackView: View {
                         storageApi.cancelThumbnailFetch(for: filekey)
                     }
             }
-        }.onTapGesture {
-            if isSelecting {
-                if isSelected {
-                    selectedItems.removeAll(where: { $0 == photo })
-                    isSelected = false
-                } else {
-                    selectedItems.append(photo)
-                    isSelected = true
-                }
-            } else {
-                selectedItem = photo
-                showFullScreen = true
-            }
-        }
-        .onChange(of: isSelecting) {
-            isSelected = false
         }
     }
     

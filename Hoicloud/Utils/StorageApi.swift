@@ -135,7 +135,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
     }
     
     func downloadMetadata() {
-        self.photos = []
+        var photos: [Metadata] = []
         
         guard let request = getUrlRequest(
             apiHost: self.apiHost,
@@ -162,13 +162,14 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                 
                 DispatchQueue.main.async {
                     for metadata in body {
-                        self.photos.append(metadata)
+                        photos.append(metadata)
                     }
-                    self.photos.sort {
+                    photos.sort {
                         let s1 = $0.created ?? $0.uploaded
                         let s2 = $1.created ?? $1.uploaded
                         return s2 < s1
                     }
+                    self.photos = photos
                 }
             } catch {
                 print("Error fetching metadata: \(error)")
@@ -252,7 +253,9 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                 } else {
                     print("Error decoding thumbnail for identifier: \(id)")
                     let image = UIImage(systemName: "photo.fill")
-                    self.thumbnails[id] = image
+                    DispatchQueue.main.async {
+                        self.thumbnails[id] = image
+                    }
                 }
             } catch {
                 guard !Task.isCancelled else { return }

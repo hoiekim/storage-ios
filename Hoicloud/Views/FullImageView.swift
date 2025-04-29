@@ -25,9 +25,8 @@ func previousElement<T: Equatable>(before element: T, in array: [T]) -> T? {
 }
 
 struct FullImageView: View {
-    @Binding var isPresented: Bool
-    @ObservedObject var storageApi: StorageApi
-    @Binding var selectedItem: Metadata?
+    @StateObject private var storageApi = StorageApi.shared
+    var photo: Metadata
     
     @State var targetItem: Metadata? = nil
     @State private var thumbnail: UIImage? = nil
@@ -100,7 +99,6 @@ struct FullImageView: View {
                     Button(action: {
                         totalZoom = 1
                         currentZoom = 0
-                        isPresented = false
                     }) {
                         Image(systemName: "arrow.left")
                             .font(.title)
@@ -176,9 +174,7 @@ struct FullImageView: View {
                 }
             )
             .onAppear {
-                if let selectedItem = selectedItem {
-                    targetItem = selectedItem
-                }
+                targetItem = photo
                 if let filekey = targetItem?.filekey {
                     thumbnail = storageApi.thumbnails[filekey]
                 }
@@ -190,14 +186,13 @@ struct FullImageView: View {
                 if let targetItem {
                     MetadataView(
                         photo: targetItem,
-                        storageApi: storageApi,
-                        show: $showMetadata,
-                        isFullScreenShow: $isPresented
+                        show: $showMetadata
                     )
                 }
             }
-            
         }
+        .navigationTitle(photo.filename)
+        .navigationBarTitleDisplayMode(.inline)
     }
     
     private func fetchFullImage() {

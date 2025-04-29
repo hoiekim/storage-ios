@@ -9,9 +9,8 @@ import SwiftUI
 
 struct MetadataView: View {
     var photo: Metadata
-    @ObservedObject var storageApi: StorageApi
+    @StateObject private var storageApi = StorageApi.shared
     @Binding var show: Bool
-    @Binding var isFullScreenShow: Bool
 
     var body: some View {
         HStack {
@@ -134,7 +133,6 @@ struct MetadataView: View {
                             photo: photo
                         )
                         show = false
-                        isFullScreenShow = false
                     }
                 }) {
                     Text("Delete")
