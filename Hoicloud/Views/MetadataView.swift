@@ -190,7 +190,3 @@ struct MetadataView: View {
         return string + " pixels"
     }
 }
-
-#Preview {
-    ContentView()
-}

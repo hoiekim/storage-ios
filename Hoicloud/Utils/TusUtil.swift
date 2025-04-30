@@ -12,6 +12,7 @@ import PhotosUI
 
 final class TusUtil {
     let tusClient: TUSClient
+    let progress = Progress.shared
     
     var _apiHost: String
     var _apiKey: String
@@ -92,7 +93,9 @@ extension TusUtil: TUSClientDelegate {
         totalBytes: Int,
         client: TUSKit.TUSClient
     ) {
-//        print("TUSClient progress for \(id), uploaded \(bytesUploaded)/\(totalBytes)")
+        guard let uploadId = context?["itemId"] else { return }
+        let rate = CGFloat(bytesUploaded / totalBytes)
+        progress.update(id: uploadId, rate: rate)
     }
     
     func didStartUpload(
@@ -101,6 +104,8 @@ extension TusUtil: TUSClientDelegate {
         client: TUSKit.TUSClient
     ) {
         print("TUSClient started upload, id is \(id)")
+        guard let uploadId = context?["itemId"] else { return }
+        progress.start(id: uploadId)
     }
     
     func didFinishUpload(
@@ -110,6 +115,8 @@ extension TusUtil: TUSClientDelegate {
         client: TUSKit.TUSClient
     ) {
         print("TUSClient finished upload, id is \(id) url is \(url)")
+        guard let uploadId = context?["itemId"] else { return }
+        progress.complete(id: uploadId)
     }
     
     func uploadFailed(
@@ -119,6 +126,8 @@ extension TusUtil: TUSClientDelegate {
         client: TUSKit.TUSClient
     ) {
         print("TUSClient upload failed for \(id) error \(error)")
+        guard let uploadId = context?["itemId"] else { return }
+        progress.remove(id: uploadId)
     }
     
     func fileError(error: TUSClientError, client: TUSClient) {

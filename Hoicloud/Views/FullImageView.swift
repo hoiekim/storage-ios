@@ -228,7 +228,3 @@ struct FullImageView: View {
         }
     }
 }
-
-#Preview {
-    ContentView()
-}

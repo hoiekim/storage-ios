@@ -61,16 +61,20 @@ func cleanTemporaryDirectory(olderThan days: Int = 2) {
 }
 
 class Progress: ObservableObject {
-    @Published var dict: [String: Bool] = [:]
+    @Published var dict: [String: CGFloat] = [:]
     
     static let shared = Progress()
     
     func start(id: String) {
-        dict[id] = false
+        dict[id] = 0
     }
     
     func complete(id: String) {
-        dict[id] = true
+        dict[id] = 1
+    }
+    
+    func update(id: String, rate: CGFloat) {
+        dict[id] = rate
     }
     
     func remove(id: String) {
@@ -89,11 +93,33 @@ class Progress: ObservableObject {
         return dict.values.count
     }
     
-    func rate() -> CGFloat {
+    func completedRate() -> CGFloat {
+        let totalTasks = size()
+        guard totalTasks > 0 else { return 0 }
+        let completedCount = dict.values.filter { $0 == 1 }.count
+        return CGFloat(completedCount) / CGFloat(totalTasks)
+    }
+    
+    func pendingRate() -> CGFloat {
+        let totalTasks = size()
+        guard totalTasks > 0 else { return 0 }
+        let pendingSum = dict.values.filter { $0 < 1 }.reduce(0) { $0 + $1 }
+        return pendingSum / CGFloat(totalTasks)
+    }
+    
+    func totalRate() -> CGFloat {
         let totalTasks = size()
         guard totalTasks > 0 else { return 1 }
-        let completedTasks = dict.values.map { $0 }.filter { $0 }.count
-        return CGFloat(completedTasks + 1) / CGFloat(totalTasks + 1)
+        let completed = dict.values.reduce(0) { $0 + $1 }
+        return completed / CGFloat(totalTasks)
+    }
+    
+    func toString() -> String {
+        return "\(Int(totalRate() * CGFloat(size()))) / \(size())"
+    }
+    
+    func keys() -> [String] {
+        return Array(dict.keys)
     }
 }
 

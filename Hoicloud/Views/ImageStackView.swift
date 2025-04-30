@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ImageStackView: View {
-    @ObservedObject var storageApi: StorageApi = StorageApi.shared
+    @StateObject private var storageApi = StorageApi.shared
     
     var photo: Metadata
     @Binding var selectedItems: [Metadata]
@@ -114,8 +114,4 @@ struct ImageStackView: View {
                 .padding([.trailing, .bottom], 2)
         }
     }
-}
-
-#Preview {
-    ContentView()
 }

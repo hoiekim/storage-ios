@@ -10,8 +10,8 @@ import UIKit
 import PhotosUI
 
 struct ImagePickerView: View {
-    @ObservedObject var storageApi: StorageApi
-    @ObservedObject var progress: Progress
+    @StateObject private var storageApi = StorageApi.shared
+    @StateObject private var progress = Progress.shared
     @Binding var show: Bool
     @State private var selectedItems: [PhotosPickerItem] = []
     
@@ -50,21 +50,7 @@ struct ImagePickerView: View {
     private func onUpload() {
         Task {
             for item in selectedItems {
-                if let itemId = item.itemIdentifier {
-                    progress.start(id: itemId)
-                }
-            }
-            for item in selectedItems {
                 await storageApi.uploadItem(item: item)
-                if let itemId = item.itemIdentifier {
-                    progress.complete(id: itemId)
-                }
-            }
-            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s delay
-            for item in selectedItems {
-                if let itemId = item.itemIdentifier {
-                    progress.remove(id: itemId)
-                }
             }
         }
         show = false
