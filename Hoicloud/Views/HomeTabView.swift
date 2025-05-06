@@ -8,16 +8,20 @@
 import SwiftUI
 import PhotosUI
 
-struct HomeView: View {
+struct HomeTabView: View {
+    @EnvironmentObject var tabRouter: TabRouter
+    
     @State private var showConfiguration = false
     @State private var showAddItemSheet = false
     @State private var isSelecting = false
     @State private var selectedItems: [Metadata] = []
+    @State private var showDownloadConfirmation = false
 
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     @StateObject private var storageApi = StorageApi.shared
-    @StateObject private var progress = Progress.shared
+    @StateObject private var uploadProgress = Progress.uploads
+    @StateObject private var downloadProgress = Progress.downloads
     
     let columns = [
         GridItem(.flexible(), spacing: 2),
@@ -74,6 +78,7 @@ struct HomeView: View {
             .toolbar {
                 if isSelecting {
                     ToolbarItem(placement: .navigationBarTrailing) {
+                        // delete button
                         Button(action: {
                             Task {
                                 for photo in selectedItems {
@@ -87,31 +92,34 @@ struct HomeView: View {
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
+                        // download button
                         Button(action: {
+                            tabRouter.selectedTab = .downloads
                             Task {
-//                                for photo in selectedItems {
-//                                    progress.start(id: photo.filekey)
-//                                }
+                                for photo in selectedItems {
+                                    downloadProgress.start(id: photo.filekey)
+                                }
                                 for photo in selectedItems {
                                     print("Downloading: \(photo.filekey)")
-                                    if let data = await storageApi.getFullImageData(filekey: photo.filekey),
-                                       let image = UIImage(data: data) {
-                                        ImageSaver().writeToPhotoAlbum(image: image)
+                                    downloadProgress.update(id: photo.filekey, rate: 0.1)
+                                    if let data = await storageApi.getFullImageData(filekey: photo.filekey) {
+                                        downloadProgress.update(id: photo.filekey, rate: 0.60)
+                                        if let image = UIImage(data: data) {
+                                            downloadProgress.update(id: photo.filekey, rate: 0.90)
+                                            ImageSaver().writeToPhotoAlbum(image: image)
+                                        }
                                     }
-//                                    progress.complete(id: photo.filekey)
+                                    downloadProgress.complete(id: photo.filekey)
                                 }
-//                                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s delay
-//                                for photo in selectedItems {
-//                                    progress.remove(id: photo.filekey)
-//                                }
-                                isSelecting = false
                             }
+                            isSelecting = false
                         }) {
                             Label("Download", systemImage: "square.and.arrow.down")
                                 .labelStyle(.titleAndIcon)
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
+                        // select button
                         Button(action: {
                             isSelecting = false
                         }) {
@@ -120,6 +128,7 @@ struct HomeView: View {
                     }
                 } else {
                     ToolbarItem(placement: .navigationBarTrailing) {
+                        // add button
                         Button(action: {
                             showAddItemSheet = true
                         }) {
@@ -127,6 +136,7 @@ struct HomeView: View {
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
+                        // select button
                         Button(action: {
                             selectedItems = []
                             isSelecting = true
@@ -135,6 +145,7 @@ struct HomeView: View {
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
+                        // config button
                         Button(action: {
                             showConfiguration = true
                         }) {
@@ -163,7 +174,10 @@ struct HomeView: View {
         ImageStackView(
             photo: photo,
             selectedItems: $selectedItems,
-            isSelecting: $isSelecting
+            isSelecting: $isSelecting,
+            destination: {
+                FullImageView(photo: photo, photos: storageApi.photos)
+            }
         )
     }
 }

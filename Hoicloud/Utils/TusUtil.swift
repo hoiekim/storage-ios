@@ -12,7 +12,7 @@ import PhotosUI
 
 final class TusUtil {
     let tusClient: TUSClient
-    let progress = Progress.shared
+    let progress = Progress.uploads
     
     var _apiHost: String
     var _apiKey: String

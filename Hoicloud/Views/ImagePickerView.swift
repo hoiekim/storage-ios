@@ -10,8 +10,10 @@ import UIKit
 import PhotosUI
 
 struct ImagePickerView: View {
+    @EnvironmentObject var tabRouter: TabRouter
+    
     @StateObject private var storageApi = StorageApi.shared
-    @StateObject private var progress = Progress.shared
+    @StateObject private var progress = Progress.uploads
     @Binding var show: Bool
     @State private var selectedItems: [PhotosPickerItem] = []
     
@@ -54,6 +56,7 @@ struct ImagePickerView: View {
             }
         }
         show = false
+        tabRouter.selectedTab = .uploads
     }
 }
 

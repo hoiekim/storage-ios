@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVKit
+import Photos
 
 func nextElement<T: Equatable>(after element: T, in array: [T]) -> T? {
     guard let currentIndex = array.firstIndex(of: element) else {
@@ -26,7 +27,13 @@ func previousElement<T: Equatable>(before element: T, in array: [T]) -> T? {
 
 struct FullImageView: View {
     @StateObject private var storageApi = StorageApi.shared
-    var photo: Metadata
+    
+    var photo: Metadata?
+    var photos: [Metadata] = []
+    
+    var asset: PHAsset?
+    var assets: [PHAsset] = []
+    var assetMetadata: AssetMetadata?
     
     @State var targetItem: Metadata? = nil
     @State private var thumbnail: UIImage? = nil
@@ -37,6 +44,17 @@ struct FullImageView: View {
     
     @State private var currentZoom = 0.0
     @State private var totalZoom = 1.0
+    
+    init(photo: Metadata, photos: [Metadata] = []) {
+        self.photo = photo
+        self.photos = photos
+    }
+    
+    init(asset: PHAsset, assets: [PHAsset] = []) {
+        self.asset = asset
+        self.assets = assets
+        self.assetMetadata = AssetMetadata.from(asset: asset)
+    }
 
     var body: some View {
         ZStack{
@@ -119,12 +137,13 @@ struct FullImageView: View {
                 Spacer()
                 
                 HStack {
+                    // previous item
                     Button(action: {
                         if let targetItem = self.targetItem {
                             player?.pause()
                             self.targetItem = previousElement(
                                 before: targetItem,
-                                in: self.storageApi.photos
+                                in: self.photos
                             )
                         }
                     }) {
@@ -136,12 +155,13 @@ struct FullImageView: View {
                     
                     Spacer()
                     
+                    // next item
                     Button(action: {
                         if let targetItem = self.targetItem {
                             player?.pause()
                             self.targetItem = nextElement(
                                 after: targetItem,
-                                in: self.storageApi.photos
+                                in: self.photos
                             )
                         }
                     }) {
@@ -159,7 +179,7 @@ struct FullImageView: View {
                             player?.pause()
                             self.targetItem = previousElement(
                                 before: targetItem,
-                                in: self.storageApi.photos
+                                in: self.photos
                             )
                         }
                     } else if value.translation.width > 0 {
@@ -167,7 +187,7 @@ struct FullImageView: View {
                             player?.pause()
                             self.targetItem = nextElement(
                                 after: targetItem,
-                                in: self.storageApi.photos
+                                in: self.photos
                             )
                         }
                     }
@@ -191,7 +211,7 @@ struct FullImageView: View {
                 }
             }
         }
-        .navigationTitle(photo.filename)
+        .navigationTitle(photo?.filename ?? assetMetadata?.filename ?? "Unknown File")
         .navigationBarTitleDisplayMode(.inline)
     }
     

@@ -7,13 +7,14 @@
 
 import SwiftUI
 
-struct ImageStackView: View {
+struct ImageStackView<Content: View>: View {
     @StateObject private var storageApi = StorageApi.shared
     
-    var photo: Metadata
+    let photo: Metadata
     @Binding var selectedItems: [Metadata]
     @Binding var isSelecting: Bool
     @State var isSelected: Bool = false
+    let destination: (() -> Content)?
     
     var body: some View {
         if isSelecting {
@@ -32,7 +33,13 @@ struct ImageStackView: View {
                 isSelected = false
             }
         } else {
-            NavigationLink(destination: FullImageView(photo: photo)) {
+            if let destination = destination {
+                NavigationLink {
+                    destination()
+                } label: {
+                    stackView()
+                }
+            } else {
                 stackView()
             }
         }

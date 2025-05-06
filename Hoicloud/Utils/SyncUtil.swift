@@ -93,7 +93,7 @@ final class SyncUtil {
         return assets
     }
 
-    private func getAssetUrl(for asset: PHAsset) async -> URL? {
+    func getAssetUrl(for asset: PHAsset) async -> URL? {
         await withCheckedContinuation { continuation in
             let options = PHContentEditingInputRequestOptions()
             options.isNetworkAccessAllowed = true

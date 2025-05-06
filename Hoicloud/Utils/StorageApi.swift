@@ -8,26 +8,6 @@
 import SwiftUI
 import PhotosUI
 
-struct Metadata: Identifiable, Codable, Equatable {
-    let id: Int
-    let filekey: String
-    let filename: String
-    let filesize: Int
-    let mime_type: String
-    let width: Int?
-    let height: Int?
-    let duration: Float?
-    let altitude: Float?
-    let latitude: Float?
-    let longitude: Float?
-    let created: String?
-    let uploaded: String
-    
-    static func == (lhs: Metadata, rhs: Metadata) -> Bool {
-        return lhs.filekey == rhs.filekey
-    }
-}
-
 func appendApiKey(
     to urlString: String,
     with apiKey: String
@@ -92,6 +72,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
     @AppStorage("apiKey") var apiKey = ""
     
     @Published var photos: [Metadata] = []
+    @Published var photosByKey: [String: Metadata] = [:]
     @Published var thumbnails: [String: UIImage] = [:]
     private var downloadMetadataTask: Task<Void, Never>?
     private var downloadThumbnailTasks: [String: Task<Void, Never>] = [:]
@@ -136,6 +117,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
     
     func downloadMetadata() {
         var photos: [Metadata] = []
+        var photosByKey: [String: Metadata] = [:]
         
         guard let request = getUrlRequest(
             apiHost: self.apiHost,
@@ -163,6 +145,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                 DispatchQueue.main.async {
                     for metadata in body {
                         photos.append(metadata)
+                        photosByKey[metadata.filekey] = metadata
                     }
                     photos.sort {
                         let s1 = $0.created ?? $0.uploaded
@@ -170,6 +153,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                         return s2 < s1
                     }
                     self.photos = photos
+                    self.photosByKey = photosByKey
                 }
             } catch {
                 print("Error fetching metadata: \(error)")
@@ -342,10 +326,6 @@ class StorageApi: ObservableObject, @unchecked Sendable {
         let task = URLSession.shared.dataTask(
             with: request
         ) { data, response, error in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                self.downloadMetadata()
-            }
-            
             guard let data = data, error == nil else {
                 print("Error uploading file")
                 print(error ?? "Unknown error")
@@ -358,6 +338,11 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                     let message = json.message ?? "Unknown"
                     if 200 <= statusCode && statusCode < 300 {
                         print("Delete successful(\(statusCode)): \(message)")
+                        DispatchQueue.main.async {
+                            self.photos.remove(at: self.photos.firstIndex(of: photo)!)
+                            self.photosByKey.removeValue(forKey: photo.filekey)
+                            self.thumbnails.removeValue(forKey: photo.filekey)
+                        }
                     } else {
                         print("Delete failed(\(statusCode)): \(message)")
                     }
