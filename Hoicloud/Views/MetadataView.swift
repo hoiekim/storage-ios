@@ -25,19 +25,6 @@ struct MetadataView: View {
             Spacer()
         }
         
-        let title = if photo.mime_type.starts(with: "image/") {
-            "Photo Metadata"
-        } else if photo.mime_type.starts(with: "video/") {
-            "Video Metadata"
-        } else {
-            "File Metadata"
-        }
-        
-        Text(title)
-            .font(.system(size: 24, weight: .bold))
-            .frame(alignment: .leading)
-            .padding(.top, 10.0)
-        
         List {
             Section {
                 HStack(spacing: 0) {
@@ -67,14 +54,16 @@ struct MetadataView: View {
                         .multilineTextAlignment(.trailing)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                HStack(spacing: 0) {
-                    Text("Uploaded")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.system(size: 14))
-                        .foregroundColor(.gray)
-                    Text(formatISODate(photo.uploaded))
-                        .multilineTextAlignment(.trailing)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                if let metadata = photo as? Metadata {
+                    HStack(spacing: 0) {
+                        Text("Uploaded")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray)
+                        Text(formatISODate(photo.uploaded))
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
                 }
             }
             Section {
@@ -127,16 +116,18 @@ struct MetadataView: View {
                 }
             }
             Section {
-                Button(action: {
-                    Task {
-                        await storageApi.deleteFile(
-                            photo: photo
-                        )
-                        show = false
+                if let photo = photo as? Metadata {
+                    Button(action: {
+                        Task {
+                            await storageApi.deleteFile(
+                                photo: photo
+                            )
+                            show = false
+                        }
+                    }) {
+                        Text("Delete")
+                            .foregroundColor(.red)
                     }
-                }) {
-                    Text("Delete")
-                        .foregroundColor(.red)
                 }
                 Button(action: {
                     show = false

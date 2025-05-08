@@ -15,7 +15,6 @@ struct HomeTabView: View {
     @State private var showAddItemSheet = false
     @State private var isSelecting = false
     @State private var selectedItems: [Metadata] = []
-    @State private var showDownloadConfirmation = false
     @State private var sortedPhotos: [Metadata] = []
 
     @AppStorage("apiHost") var apiHost = ""
@@ -31,7 +30,6 @@ struct HomeTabView: View {
     ]
     
     var numberOfPhotos: Int { storageApi.photos.count }
-    
     var anyOfMultiple: [String] {[apiHost, apiKey, showConfiguration.description]}
     
     var body: some View {
@@ -84,76 +82,40 @@ struct HomeTabView: View {
                 if isSelecting {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         // delete button
-                        Button(action: {
-                            Task {
-                                for photo in selectedItems {
-                                    await storageApi.deleteFile(photo: photo)
-                                }
-                                isSelecting = false
-                            }
-                        }) {
+                        Button(action: deleteAction) {
                             Label("Delete", systemImage: "trash")
                                 .labelStyle(.titleAndIcon)
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         // download button
-                        Button(action: {
-                            tabRouter.selectedTab = .downloads
-                            Task {
-                                for photo in selectedItems {
-                                    downloadProgress.start(id: photo.filekey)
-                                }
-                                for photo in selectedItems {
-                                    print("Downloading: \(photo.filekey)")
-                                    downloadProgress.update(id: photo.filekey, rate: 0.1)
-                                    if let data = await storageApi.getFullImageData(filekey: photo.filekey) {
-                                        downloadProgress.update(id: photo.filekey, rate: 0.60)
-                                        if let image = UIImage(data: data) {
-                                            downloadProgress.update(id: photo.filekey, rate: 0.90)
-                                            ImageSaver().writeToPhotoAlbum(image: image)
-                                        }
-                                    }
-                                    downloadProgress.complete(id: photo.filekey)
-                                }
-                            }
-                            isSelecting = false
-                        }) {
+                        Button(action: downloadAction) {
                             Label("Download", systemImage: "square.and.arrow.down")
                                 .labelStyle(.titleAndIcon)
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         // select button
-                        Button(action: {
-                            isSelecting = false
-                        }) {
+                        Button(action: finishSelecting) {
                             Text("Cancel")
                         }
                     }
                 } else {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         // add button
-                        Button(action: {
-                            showAddItemSheet = true
-                        }) {
+                        Button(action: startAddItem) {
                             Image(systemName: "plus.circle.fill")
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         // select button
-                        Button(action: {
-                            selectedItems = []
-                            isSelecting = true
-                        }) {
+                        Button(action: startSelecting) {
                             Image(systemName: "checkmark.circle.fill")
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         // config button
-                        Button(action: {
-                            showConfiguration = true
-                        }) {
+                        Button(action: startConfiguration) {
                             Image(systemName: "gearshape.fill")
                         }
                     }
@@ -166,7 +128,6 @@ struct HomeTabView: View {
                 ImagePickerView(show: $showAddItemSheet)
             }
             .navigationViewStyle(StackNavigationViewStyle())
-            .preferredColorScheme(.dark)
         }
         .refreshable {
             print("refreshing")
@@ -189,8 +150,8 @@ struct HomeTabView: View {
     private func sortPhotos() {
         DispatchQueue.global(qos: .userInitiated).async {
             let sorted = self.storageApi.photos.values.sorted { left, right in
-                let s1 = left.created ?? left.uploaded
-                let s2 = right.created ?? right.uploaded
+                let s1 = left.created ?? left.uploaded ?? Date.distantPast.ISO8601Format()
+                let s2 = right.created ?? right.uploaded ?? Date.distantPast.ISO8601Format()
                 return s2 < s1
             }
             
@@ -198,5 +159,55 @@ struct HomeTabView: View {
                 self.sortedPhotos = sorted
             }
         }
+    }
+    
+    private func downloadAction() {
+        tabRouter.selectedTab = .downloads
+        Task {
+            for photo in selectedItems {
+                guard let filekey = photo.filekey else { continue }
+                downloadProgress.start(id: filekey)
+            }
+            for photo in selectedItems {
+                guard let filekey = photo.filekey else { continue }
+                print("Downloading: \(filekey)")
+                downloadProgress.update(id: filekey, rate: 0.1)
+                if let data = await storageApi.getFullImageData(filekey: filekey) {
+                    downloadProgress.update(id: filekey, rate: 0.60)
+                    if let image = UIImage(data: data) {
+                        downloadProgress.update(id: filekey, rate: 0.90)
+                        ImageSaver().writeToPhotoAlbum(image: image)
+                    }
+                }
+                downloadProgress.complete(id: filekey)
+            }
+        }
+        finishSelecting()
+    }
+    
+    private func deleteAction() {
+        Task {
+            for photo in selectedItems {
+                await storageApi.deleteFile(photo: photo)
+            }
+            finishSelecting()
+        }
+    }
+    
+    private func startSelecting() {
+        selectedItems = []
+        isSelecting = true
+    }
+    
+    private func finishSelecting() {
+        isSelecting = false
+    }
+    
+    private func startAddItem() {
+        showAddItemSheet = true
+    }
+    
+    private func startConfiguration() {
+        showConfiguration = true
     }
 }

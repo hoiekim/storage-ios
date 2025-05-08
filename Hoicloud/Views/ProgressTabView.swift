@@ -142,9 +142,11 @@ struct ProgressItem: View {
     @ObservedObject var progress: Progress
     @State var uiImage: UIImage?
     @State var asset: PHAsset?
-    @State var assetMetadata: AssetMetadata?
+    @State var assetMetadata: Metadata?
+    @State var assets: [PHAsset] = []
     
     @State var photo: Metadata?
+    @State var photos: [Metadata] = []
     
     private let storageApi = StorageApi.shared
     
@@ -214,7 +216,7 @@ struct ProgressItem: View {
         let assets = PHAsset.fetchAssets(withLocalIdentifiers: [key], options: nil)
         guard let asset = assets.firstObject else { return }
         self.asset = asset
-        self.assetMetadata = AssetMetadata.from(asset: asset)
+        self.assetMetadata = Metadata.from(asset: asset)
         let options = PHImageRequestOptions()
         options.deliveryMode = .highQualityFormat
         options.isSynchronous = false

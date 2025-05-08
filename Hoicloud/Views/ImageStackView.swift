@@ -50,8 +50,7 @@ struct ImageStackView<Content: View>: View {
         VStack {
             let screenWidth = UIScreen.main.bounds.width
             let tileHeight = screenWidth / 3
-            let filekey = photo.filekey
-            if let thumbnail = storageApi.thumbnails[filekey] {
+            if let filekey = photo.filekey, let thumbnail = storageApi.thumbnails[filekey] {
                 Image(uiImage: thumbnail)
                     .resizable()
                     .scaledToFit()
@@ -97,12 +96,14 @@ struct ImageStackView<Content: View>: View {
                     .frame(height: tileHeight)
                     .overlay(ProgressView())
                     .onAppear {
-                        storageApi.downloadThumbnail(
-                            id: filekey
-                        )
+                        if let filekey = photo.filekey {
+                            storageApi.downloadThumbnail(id: filekey)
+                        }
                     }
                     .onDisappear {
-                        storageApi.cancelThumbnailFetch(for: filekey)
+                        if let filekey = photo.filekey {
+                            storageApi.cancelThumbnailFetch(for: filekey)
+                        }
                     }
             }
         }

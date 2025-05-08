@@ -142,7 +142,9 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                 
                 DispatchQueue.main.async {
                     for metadata in body {
-                        photosByKey[metadata.filekey] = metadata
+                        if let filekey = metadata.filekey {
+                            photosByKey[filekey] = metadata
+                        }
                     }
                     self.photos = photosByKey
                 }
@@ -330,8 +332,10 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                     if 200 <= statusCode && statusCode < 300 {
                         print("Delete successful(\(statusCode)): \(message)")
                         DispatchQueue.main.async {
-                            self.photos.removeValue(forKey: photo.filekey)
-                            self.thumbnails.removeValue(forKey: photo.filekey)
+                            if let filekey = photo.filekey {
+                                self.photos.removeValue(forKey: filekey)
+                                self.thumbnails.removeValue(forKey: filekey)
+                            }
                         }
                     } else {
                         print("Delete failed(\(statusCode)): \(message)")

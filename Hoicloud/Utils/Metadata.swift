@@ -12,7 +12,8 @@ import CoreLocation
 
 struct Metadata: Identifiable, Codable, Equatable {
     let id: Int
-    let filekey: String
+    var item_id: String
+    let filekey: String?
     let filename: String
     let filesize: Int
     let mime_type: String
@@ -23,32 +24,13 @@ struct Metadata: Identifiable, Codable, Equatable {
     let latitude: Float?
     let longitude: Float?
     let created: String?
-    let uploaded: String
+    let uploaded: String?
     
     static func == (lhs: Metadata, rhs: Metadata) -> Bool {
         return lhs.filekey == rhs.filekey
     }
-}
-
-struct AssetMetadata: Identifiable, Codable, Equatable {
-    let id: Int
-    let itemId: String
-    let filename: String
-    let filesize: Int
-    let mime_type: String
-    let width: Int?
-    let height: Int?
-    let duration: Float?
-    let altitude: Float?
-    let latitude: Float?
-    let longitude: Float?
-    let created: String?
     
-    static func == (lhs: AssetMetadata, rhs: AssetMetadata) -> Bool {
-        return lhs.itemId == rhs.itemId
-    }
-    
-    static func from(asset: PHAsset, id: Int = 0) -> AssetMetadata {
+    static func from(asset: PHAsset, id: Int = 0) -> Metadata {
         // Get itemId
         let itemId = asset.localIdentifier
         
@@ -114,9 +96,10 @@ struct AssetMetadata: Identifiable, Codable, Equatable {
             created = dateFormatter.string(from: creationDate)
         }
         
-        return AssetMetadata(
+        return Metadata(
             id: id,
-            itemId: itemId,
+            item_id: itemId,
+            filekey: nil,
             filename: filename,
             filesize: filesize,
             mime_type: mimeType,
@@ -126,7 +109,8 @@ struct AssetMetadata: Identifiable, Codable, Equatable {
             altitude: altitude,
             latitude: latitude,
             longitude: longitude,
-            created: created
+            created: created,
+            uploaded: nil
         )
     }
 }
