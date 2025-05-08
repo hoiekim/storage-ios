@@ -11,7 +11,7 @@ struct ConfigurationView: View {
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     @Binding var show: Bool
-    @StateObject private var storageApi = StorageApi.shared
+    @ObservedObject private var storageApi = StorageApi.shared
     
     @State var apiHostInput: String = ""
     @State var apiKeyInput: String = ""

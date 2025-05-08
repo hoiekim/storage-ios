@@ -114,15 +114,6 @@ struct FullImageView: View {
             
             VStack {
                 HStack {
-                    Button(action: {
-                        totalZoom = 1
-                        currentZoom = 0
-                    }) {
-                        Image(systemName: "arrow.left")
-                            .font(.title)
-                            .foregroundColor(.white)
-                            .padding()
-                    }
                     Spacer()
                     Button(action: {
                         showMetadata = true

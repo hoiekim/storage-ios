@@ -16,12 +16,13 @@ struct HomeTabView: View {
     @State private var isSelecting = false
     @State private var selectedItems: [Metadata] = []
     @State private var showDownloadConfirmation = false
+    @State private var sortedPhotos: [Metadata] = []
 
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
-    @StateObject private var storageApi = StorageApi.shared
-    @StateObject private var uploadProgress = Progress.uploads
-    @StateObject private var downloadProgress = Progress.downloads
+    @ObservedObject private var storageApi = StorageApi.shared
+    @ObservedObject private var uploadProgress = Progress.uploads
+    @ObservedObject private var downloadProgress = Progress.downloads
     
     let columns = [
         GridItem(.flexible(), spacing: 2),
@@ -45,7 +46,7 @@ struct HomeTabView: View {
                         .padding(.trailing, 10.0)
                 } else {
                     LazyVGrid(columns: columns, spacing: 1) {
-                        ForEach(storageApi.photos) { photo in
+                        ForEach(sortedPhotos) { photo in
                             renderStack(photo)
                         }
                     }
@@ -57,6 +58,7 @@ struct HomeTabView: View {
                 if apiHost.isEmpty || apiKey.isEmpty {
                     showConfiguration = true
                 } else {
+                    sortPhotos()
                     Task {
                         if await storageApi.healthCheck() {
                             storageApi.downloadMetadata()
@@ -65,6 +67,9 @@ struct HomeTabView: View {
                         }
                     }
                 }
+            }
+            .onChange(of: storageApi.photos) {
+                sortPhotos()
             }
             .onChange(of: anyOfMultiple) {
                 Task {
@@ -176,8 +181,22 @@ struct HomeTabView: View {
             selectedItems: $selectedItems,
             isSelecting: $isSelecting,
             destination: {
-                FullImageView(photo: photo, photos: storageApi.photos)
+                FullImageView(photo: photo, photos: sortedPhotos)
             }
         )
+    }
+    
+    private func sortPhotos() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let sorted = self.storageApi.photos.values.sorted { left, right in
+                let s1 = left.created ?? left.uploaded
+                let s2 = right.created ?? right.uploaded
+                return s2 < s1
+            }
+            
+            DispatchQueue.main.async {
+                self.sortedPhotos = sorted
+            }
+        }
     }
 }

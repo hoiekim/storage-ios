@@ -9,7 +9,7 @@ import SwiftUI
 
 struct MetadataView: View {
     var photo: Metadata
-    @StateObject private var storageApi = StorageApi.shared
+    @ObservedObject private var storageApi = StorageApi.shared
     @Binding var show: Bool
 
     var body: some View {

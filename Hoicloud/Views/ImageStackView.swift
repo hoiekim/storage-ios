@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ImageStackView<Content: View>: View {
-    @StateObject private var storageApi = StorageApi.shared
+    @ObservedObject private var storageApi = StorageApi.shared
     
     let photo: Metadata
     @Binding var selectedItems: [Metadata]

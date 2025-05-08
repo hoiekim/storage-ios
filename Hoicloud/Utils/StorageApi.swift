@@ -71,8 +71,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     
-    @Published var photos: [Metadata] = []
-    @Published var photosByKey: [String: Metadata] = [:]
+    @Published var photos: [String: Metadata] = [:]
     @Published var thumbnails: [String: UIImage] = [:]
     private var downloadMetadataTask: Task<Void, Never>?
     private var downloadThumbnailTasks: [String: Task<Void, Never>] = [:]
@@ -116,7 +115,6 @@ class StorageApi: ObservableObject, @unchecked Sendable {
     }
     
     func downloadMetadata() {
-        var photos: [Metadata] = []
         var photosByKey: [String: Metadata] = [:]
         
         guard let request = getUrlRequest(
@@ -144,16 +142,9 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                 
                 DispatchQueue.main.async {
                     for metadata in body {
-                        photos.append(metadata)
                         photosByKey[metadata.filekey] = metadata
                     }
-                    photos.sort {
-                        let s1 = $0.created ?? $0.uploaded
-                        let s2 = $1.created ?? $1.uploaded
-                        return s2 < s1
-                    }
-                    self.photos = photos
-                    self.photosByKey = photosByKey
+                    self.photos = photosByKey
                 }
             } catch {
                 print("Error fetching metadata: \(error)")
@@ -339,8 +330,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                     if 200 <= statusCode && statusCode < 300 {
                         print("Delete successful(\(statusCode)): \(message)")
                         DispatchQueue.main.async {
-                            self.photos.remove(at: self.photos.firstIndex(of: photo)!)
-                            self.photosByKey.removeValue(forKey: photo.filekey)
+                            self.photos.removeValue(forKey: photo.filekey)
                             self.thumbnails.removeValue(forKey: photo.filekey)
                         }
                     } else {

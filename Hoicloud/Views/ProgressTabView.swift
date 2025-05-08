@@ -10,8 +10,8 @@ import PhotosUI
 import Photos
 
 struct ProgressTabView: View {
-    @StateObject private var storageApi = StorageApi.shared
-    @StateObject var progress: Progress
+    @ObservedObject private var storageApi = StorageApi.shared
+    @ObservedObject var progress: Progress
     private var progressKeys: [String] {
         return progress.keys().sorted{
             let left = progress.getStartTime($0) ?? Date.distantPast
@@ -61,7 +61,7 @@ struct ProgressTabView: View {
 }
 
 struct ProgressBar: View {
-    @StateObject var progress: Progress
+    @ObservedObject var progress: Progress
     
     var body: some View {
         VStack {
@@ -139,7 +139,7 @@ struct ProgressBar: View {
 struct ProgressItem: View {
     var key: String
     
-    @StateObject var progress: Progress
+    @ObservedObject var progress: Progress
     @State var uiImage: UIImage?
     @State var asset: PHAsset?
     @State var assetMetadata: AssetMetadata?
@@ -186,7 +186,7 @@ struct ProgressItem: View {
         } else {
             ProgressView()
                 .onAppear {
-                    if let photo = storageApi.photosByKey[key] {
+                    if let photo = storageApi.photos[key] {
                         resolvePhotoMetadata(photo: photo)
                     } else {
                         resolveAsset()
