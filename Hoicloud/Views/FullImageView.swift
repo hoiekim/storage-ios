@@ -185,15 +185,13 @@ class AssetItem: MediaItem, Identifiable, Equatable {
 struct FullImageView: View {
     @StateObject private var storageApi = StorageApi.shared
     
-    // New abstracted properties using type erasure with AnyEquatable
     @State private var metadataItem: MetadataItem?
     @State private var metadataItems: [MetadataItem] = []
     
     @State private var assetItem: AssetItem?
     @State private var assetItems: [AssetItem] = []
     
-    // Track which type of media we're displaying
-    @State private var isShowingAsset = false
+    @State private var isAsset = false
     
     @State private var thumbnail: UIImage? = nil
     @State private var fullImage: UIImage? = nil
@@ -207,22 +205,22 @@ struct FullImageView: View {
     init(photo: Metadata, photos: [Metadata] = []) {
         self._metadataItem = State(initialValue: MetadataItem(metadata: photo))
         self._metadataItems = State(initialValue: photos.map { MetadataItem(metadata: $0) })
-        self._isShowingAsset = State(initialValue: false)
+        self._isAsset = State(initialValue: false)
     }
     
     init(asset: PHAsset, assets: [PHAsset] = []) {
         self._assetItem = State(initialValue: AssetItem(asset: asset))
         self._assetItems = State(initialValue: assets.map { AssetItem(asset: $0) })
-        self._isShowingAsset = State(initialValue: true)
+        self._isAsset = State(initialValue: true)
     }
     
     // Helper computed properties to get the current media item
     private var currentItem: (any MediaItem)? {
-        isShowingAsset ? assetItem : metadataItem
+        isAsset ? assetItem : metadataItem
     }
     
     private var currentItems: [any MediaItem] {
-        isShowingAsset ? assetItems : metadataItems
+        isAsset ? assetItems : metadataItems
     }
 
     var body: some View {
@@ -282,18 +280,6 @@ struct FullImageView: View {
             }
             
             VStack {
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        showMetadata = true
-                    }) {
-                        Image(systemName: "ellipsis")
-                            .font(.title)
-                            .foregroundColor(.white)
-                            .padding()
-                    }
-                }
-                
                 Spacer()
                 
                 HStack {
@@ -334,18 +320,14 @@ struct FullImageView: View {
                 fetchFullImage()
             }
             .onChange(of: metadataItem) { _, _ in
-                if !isShowingAsset {
-                    resetView()
-                    loadThumbnail()
-                    fetchFullImage()
-                }
+                resetView()
+                loadThumbnail()
+                fetchFullImage()
             }
             .onChange(of: assetItem) { _, _ in
-                if isShowingAsset {
-                    resetView()
-                    loadThumbnail()
-                    fetchFullImage()
-                }
+                resetView()
+                loadThumbnail()
+                fetchFullImage()
             }
             .sheet(isPresented: $showMetadata) {
                 if let metadataItem = metadataItem {
@@ -364,12 +346,22 @@ struct FullImageView: View {
         }
         .navigationTitle(currentItem?.filename ?? "Unknown File")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showMetadata = true
+                }) {
+                    Label("metadata", systemImage: "ellipsis.circle")
+                        .labelStyle(.titleAndIcon)
+                }
+            }
+        }
     }
     
     private func navigateToPrevious() {
         player?.pause()
         
-        if isShowingAsset {
+        if isAsset {
             if let currentAsset = assetItem, !assetItems.isEmpty {
                 if let previousItem = previousElement(before: currentAsset, in: assetItems) {
                     assetItem = previousItem
@@ -387,7 +379,7 @@ struct FullImageView: View {
     private func navigateToNext() {
         player?.pause()
         
-        if isShowingAsset {
+        if isAsset {
             if let currentAsset = assetItem, !assetItems.isEmpty {
                 if let nextItem = nextElement(after: currentAsset, in: assetItems) {
                     assetItem = nextItem
