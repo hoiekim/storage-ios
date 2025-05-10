@@ -45,13 +45,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
             object: nil
         )
         
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(appWillTerminate),
-            name: UIApplication.willTerminateNotification,
-            object: nil
-        )
-        
         BGTaskScheduler.shared.getPendingTaskRequests { requests in
             print("Pending background task requests at launch: \(requests)")
         }
@@ -64,9 +57,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
     
     @objc func appMovedToBackground() {
         scheduleBackgroundPhotoSync()
-    }
-    
-    @objc func appWillTerminate() {
     }
     
     func scheduleBackgroundPhotoSync() {
