@@ -193,154 +193,85 @@ struct FullImageView: View {
     
     @State private var isAsset = false
     
-    @State private var thumbnail: UIImage? = nil
-    @State private var fullImage: UIImage? = nil
-    @State private var player: AVPlayer? = nil
-    @State private var isLoadingFullData = false
     @State var showMetadata = false
-    
     @State private var currentZoom = 0.0
     @State private var totalZoom = 1.0
+    
+    // State for TabView
+    @State private var selectedIndex: Int = 0
+    @State private var mediaCache: [Int: MediaCache] = [:]
     
     init(photo: Metadata, photos: [Metadata] = []) {
         self._metadataItem = State(initialValue: MetadataItem(metadata: photo))
         self._metadataItems = State(initialValue: photos.map { MetadataItem(metadata: $0) })
         self._isAsset = State(initialValue: false)
+        
+        // Find the index of the current item
+        if let index = photos.firstIndex(where: { $0.item_id == photo.item_id }) {
+            self._selectedIndex = State(initialValue: index)
+        }
     }
     
     init(asset: PHAsset, assets: [PHAsset] = []) {
         self._assetItem = State(initialValue: AssetItem(asset: asset))
         self._assetItems = State(initialValue: assets.map { AssetItem(asset: $0) })
         self._isAsset = State(initialValue: true)
+        
+        // Find the index of the current item
+        if let index = assets.firstIndex(where: { $0.localIdentifier == asset.localIdentifier }) {
+            self._selectedIndex = State(initialValue: index)
+        }
     }
     
     // Helper computed properties to get the current media item
     private var currentItem: (any MediaItem)? {
-        isAsset ? assetItem : metadataItem
+        if isAsset {
+            return selectedIndex < assetItems.count ? assetItems[selectedIndex] : nil
+        } else {
+            return selectedIndex < metadataItems.count ? metadataItems[selectedIndex] : nil
+        }
     }
     
     private var currentItems: [any MediaItem] {
         isAsset ? assetItems : metadataItems
     }
+    
+    private var itemCount: Int {
+        currentItems.count
+    }
 
     var body: some View {
-        ZStack{
-            Group {
-                if let fullImage {
-                    Image(uiImage: fullImage)
-                        .resizable()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .scaledToFit()
-                        .scaleEffect(currentZoom + totalZoom)
-                        .gesture(
-                            MagnificationGesture()
-                                .onChanged { value in
-                                    currentZoom = value - 1
-                                }
-                                .onEnded { value in
-                                    totalZoom += currentZoom
-                                    currentZoom = 0
-                                }
-                        )
-                } else if let _player = player {
-                    VideoPlayer(player: _player)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .scaleEffect(currentZoom + totalZoom)
-                        .gesture(
-                            MagnificationGesture()
-                                .onChanged { value in
-                                    currentZoom = value - 1
-                                }
-                                .onEnded { value in
-                                    totalZoom += currentZoom
-                                    currentZoom = 0
-                                }
-                        )
-                        .onAppear {
-                            _player.play()
-                        }
-                        .onDisappear {
-                            _player.pause()
-                        }
-                        .onChange(of: player) {
-                            player?.play()
-                        }
-                } else if let thumbnail {
-                    Image(uiImage: thumbnail)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .overlay(isLoadingFullData ? ProgressView().scaleEffect(2) : nil)
-                } else {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .overlay(ProgressView())
-                }
-            }
+        ZStack {
+            Color.black.edgesIgnoringSafeArea(.all)
             
-            VStack {
-                Spacer()
-                
-                HStack {
-                    // previous item
-                    Button(action: {
-                        navigateToPrevious()
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .font(.title)
-                            .foregroundColor(.white)
-                            .padding()
-                    }
-                    
-                    Spacer()
-                    
-                    // next item
-                    Button(action: {
-                        navigateToNext()
-                    }) {
-                        Image(systemName: "chevron.right")
-                            .font(.title)
-                            .foregroundColor(.white)
-                            .padding()
-                    }
+            TabView(selection: $selectedIndex) {
+                ForEach(0..<itemCount, id: \.self) { index in
+                    MediaItemView(
+                        item: currentItems[index],
+                        cache: mediaCache[index],
+                        onCacheUpdate: { cache in
+                            mediaCache[index] = cache
+                        }
+                    )
+                    .tag(index)
                 }
             }
-            .gesture(DragGesture()
-                .onChanged { value in
-                    if value.translation.width < 0 {
-                        navigateToNext()
-                    } else if value.translation.width > 0 {
-                        navigateToPrevious()
-                    }
-                }
-            )
-            .onAppear {
-                loadThumbnail()
-                fetchFullImage()
-            }
-            .onChange(of: metadataItem) { _, _ in
-                resetView()
-                loadThumbnail()
-                fetchFullImage()
-            }
-            .onChange(of: assetItem) { _, _ in
-                resetView()
-                loadThumbnail()
-                fetchFullImage()
-            }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+            .animation(.easeInOut, value: selectedIndex)
             .sheet(isPresented: $showMetadata) {
-                if let metadataItem = metadataItem {
-                    MetadataView(
-                        photo: metadataItem.metadata,
-                        show: $showMetadata
-                    )
-                } else if let assetItem = assetItem {
-                    let assetMetadata = Metadata.from(asset: assetItem.asset)
-                    MetadataView(
-                        photo: assetMetadata,
-                        show: $showMetadata
-                    )
+                if let item = currentItem {
+                    if let metadataItem = item as? MetadataItem {
+                        MetadataView(
+                            photo: metadataItem.metadata,
+                            show: $showMetadata
+                        )
+                    } else if let assetItem = item as? AssetItem {
+                        let assetMetadata = Metadata.from(asset: assetItem.asset)
+                        MetadataView(
+                            photo: assetMetadata,
+                            show: $showMetadata
+                        )
+                    }
                 }
             }
         }
@@ -351,65 +282,169 @@ struct FullImageView: View {
                 Button(action: {
                     showMetadata = true
                 }) {
-                    Label("metadata", systemImage: "ellipsis.circle")
+                    Label("metadata", systemImage: "ellipsis.circle.fill")
                         .labelStyle(.titleAndIcon)
+                        .fontWeight(.semibold)
                 }
             }
         }
     }
+}
+
+// Cache structure to store loaded media
+struct MediaCache {
+    var thumbnail: UIImage?
+    var fullImage: UIImage?
+    var player: AVPlayer?
+    var isLoadingFullData: Bool = false
+}
+
+// View for individual media items
+struct MediaItemView: View {
+    let item: any MediaItem
     
-    private func navigateToPrevious() {
-        player?.pause()
-        
-        if isAsset {
-            if let currentAsset = assetItem, !assetItems.isEmpty {
-                if let previousItem = previousElement(before: currentAsset, in: assetItems) {
-                    assetItem = previousItem
-                }
-            }
-        } else {
-            if let currentMetadata = metadataItem, !metadataItems.isEmpty {
-                if let previousItem = previousElement(before: currentMetadata, in: metadataItems) {
-                    metadataItem = previousItem
+    // State for this specific media item
+    @State private var thumbnail: UIImage?
+    @State private var fullImage: UIImage?
+    @State private var player: AVPlayer?
+    @State private var isLoadingFullData: Bool = false
+    
+    @State private var currentZoom = 0.0
+    @State private var totalZoom = 1.0
+    @State private var offset = CGSize.zero
+    
+    // Cache management
+    var cache: MediaCache?
+    var onCacheUpdate: (MediaCache) -> Void
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                if let fullImage = fullImage {
+                    Image(uiImage: fullImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .scaleEffect(currentZoom + totalZoom)
+                        .offset(offset)
+                        .allowsHitTesting(totalZoom > 1.0)
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    // Only allow dragging when zoomed in
+                                    if totalZoom > 1.0 || currentZoom > 0 {
+                                        offset = CGSize(
+                                            width: value.translation.width + offset.width,
+                                            height: value.translation.height + offset.height
+                                        )
+                                    }
+                                }
+                        )
+                        .gesture(
+                            MagnificationGesture()
+                                .onChanged { value in
+                                    currentZoom = value - 1
+                                }
+                                .onEnded { value in
+                                    totalZoom += currentZoom
+                                    currentZoom = 0
+                                    
+                                    // Reset offset if zooming out to normal
+                                    if totalZoom <= 1.0 {
+                                        totalZoom = 1.0
+                                        offset = .zero
+                                    }
+                                }
+                        )
+                        .gesture(
+                            TapGesture(count: 2)
+                                .onEnded {
+                                    withAnimation {
+                                        if totalZoom > 1.0 {
+                                            // Reset zoom
+                                            totalZoom = 1.0
+                                            offset = .zero
+                                        } else {
+                                            // Zoom in
+                                            totalZoom = 2.0
+                                        }
+                                    }
+                                }
+                        )
+                } else if let _player = player {
+                    VideoPlayer(player: _player)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .onAppear {
+                            _player.play()
+                        }
+                        .onDisappear {
+                            _player.pause()
+                        }
+                } else if let thumbnail = thumbnail {
+                    Image(uiImage: thumbnail)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .overlay(isLoadingFullData ? ProgressView().scaleEffect(2) : nil)
+                } else {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .overlay(ProgressView())
                 }
             }
         }
-    }
-    
-    private func navigateToNext() {
-        player?.pause()
-        
-        if isAsset {
-            if let currentAsset = assetItem, !assetItems.isEmpty {
-                if let nextItem = nextElement(after: currentAsset, in: assetItems) {
-                    assetItem = nextItem
+        .onAppear {
+            // Load from cache if available
+            if let cache = cache {
+                self.thumbnail = cache.thumbnail
+                self.fullImage = cache.fullImage
+                self.player = cache.player
+                self.isLoadingFullData = cache.isLoadingFullData
+                
+                // If we have a cache but no full image loaded yet, continue loading
+                if cache.fullImage == nil && cache.player == nil && !cache.isLoadingFullData {
+                    loadThumbnail()
+                    fetchFullImage()
                 }
+            } else {
+                // No cache, load from scratch
+                loadThumbnail()
+                fetchFullImage()
             }
-        } else {
-            if let currentMetadata = metadataItem, !metadataItems.isEmpty {
-                if let nextItem = nextElement(after: currentMetadata, in: metadataItems) {
-                    metadataItem = nextItem
-                }
-            }
+        }
+        .onChange(of: fullImage) { _, newValue in
+            updateCache()
+        }
+        .onChange(of: thumbnail) { _, newValue in
+            updateCache()
+        }
+        .onChange(of: player) { _, newValue in
+            updateCache()
+        }
+        .onChange(of: isLoadingFullData) { _, newValue in
+            updateCache()
         }
     }
     
-    private func resetView() {
-        fullImage = nil
-        player = nil
-        thumbnail = nil
-        isLoadingFullData = false
+    private func updateCache() {
+        let newCache = MediaCache(
+            thumbnail: thumbnail,
+            fullImage: fullImage,
+            player: player,
+            isLoadingFullData: isLoadingFullData
+        )
+        onCacheUpdate(newCache)
     }
     
     private func loadThumbnail() {
-        guard let item = currentItem else { return }
         item.getThumbnail { image in
             self.thumbnail = image
         }
     }
     
     private func fetchFullImage() {
-        guard !isLoadingFullData, let item = currentItem else { return }
+        guard !isLoadingFullData else { return }
         isLoadingFullData = true
         
         if item.mimeType.starts(with: "video/") {
