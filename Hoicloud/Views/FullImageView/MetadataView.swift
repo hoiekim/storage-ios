@@ -13,18 +13,6 @@ struct MetadataView: View {
     @Binding var show: Bool
 
     var body: some View {
-        HStack {
-            Button(action: {
-                show = false
-            }) {
-                Image(systemName: "arrow.left")
-                    .font(.title)
-                    .foregroundColor(.white)
-                    .padding()
-            }
-            Spacer()
-        }
-        
         List {
             Section {
                 HStack(spacing: 0) {
@@ -54,16 +42,14 @@ struct MetadataView: View {
                         .multilineTextAlignment(.trailing)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                if let metadata = photo as? Metadata {
-                    HStack(spacing: 0) {
-                        Text("Uploaded")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .font(.system(size: 14))
-                            .foregroundColor(.gray)
-                        Text(formatISODate(photo.uploaded))
-                            .multilineTextAlignment(.trailing)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                    }
+                HStack(spacing: 0) {
+                    Text("Uploaded")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                    Text(formatISODate(photo.uploaded))
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
             Section {
@@ -116,26 +102,26 @@ struct MetadataView: View {
                 }
             }
             Section {
-                if let photo = photo as? Metadata {
-                    Button(action: {
-                        Task {
-                            await storageApi.deleteFile(
-                                photo: photo
-                            )
-                            show = false
-                        }
-                    }) {
-                        Text("Delete")
-                            .foregroundColor(.red)
-                    }
+                Button(action: deletePhoto) {
+                    Text("Delete")
+                        .foregroundColor(.red)
                 }
-                Button(action: {
-                    show = false
-                }) {
+                Button(action: close) {
                     Text("Close")
                 }
             }
         }
+    }
+    
+    private func deletePhoto() {
+        Task {
+            await storageApi.deleteFile(photo: photo)
+            show = false
+        }
+    }
+    
+    private func close() {
+        show = false
     }
     
     private let formatter1 = ISO8601DateFormatter()

@@ -17,34 +17,56 @@ enum Tab {
 }
 
 struct ContentView: View {
+    @AppStorage("apiHost") var apiHost = ""
+    @AppStorage("apiKey") var apiKey = ""
+    
     @StateObject private var tabRouter = TabRouter()
+    @State var showConfiguration = false
+    @State var showAddItemSheet = false
+    
+    @ObservedObject private var storageApi = StorageApi.shared
+    
+    var anyOfMultiple: [String] {[apiHost, apiKey, showConfiguration.description]}
     
     var body: some View {
         TabView(selection: $tabRouter.selectedTab) {
-            HomeTabView()
+            HomeTabView(
+                showConfiguration: $showConfiguration,
+                showAddItemSheet: $showAddItemSheet
+            )
                 .tabItem {
                     Label("Home", systemImage: "house")
                 }
                 .tag(Tab.home)
-            ProgressTabView(
-                progress: Progress.uploads,
-                title: "Uploads",
+            UploadProgressTabView(
+                showConfiguration: $showConfiguration,
+                showAddItemSheet: $showAddItemSheet,
             )
             .tabItem {
                 Label("Uploads", systemImage: "arrow.up.circle")
             }
             .tag(Tab.uploads)
-            ProgressTabView(
-                progress: Progress.downloads,
-                title: "Downloads",
+            DownloadProgressTabView(
+                showConfiguration: $showConfiguration,
+                showAddItemSheet: $showAddItemSheet,
             )
             .tabItem {
                 Label("Downloads", systemImage: "arrow.down.circle")
             }
             .tag(Tab.downloads)
         }
+        .sheet(isPresented: $showConfiguration) {
+            ConfigurationView(show: $showConfiguration)
+        }
+        .sheet(isPresented: $showAddItemSheet) {
+            ImagePickerView(show: $showAddItemSheet)
+        }
         .environmentObject(tabRouter)
         .preferredColorScheme(.dark)
+    }
+    
+    private func startConfiguration() {
+        showConfiguration = true
     }
 }
 

@@ -1,64 +1,12 @@
 //
-//  UploadProgressView.swift
+//  ProgressBar.swift
 //  Hoicloud
 //
-//  Created by Hoie Kim on 4/28/25.
+//  Created by Hoie Kim on 5/11/25.
 //
 
 import SwiftUI
-import PhotosUI
 import Photos
-
-struct ProgressTabView: View {
-    @ObservedObject private var storageApi = StorageApi.shared
-    @ObservedObject var progress: Progress
-    private var progressKeys: [String] {
-        return progress.keys().sorted{
-            let left = progress.getStartTime($0) ?? Date.distantPast
-            let right = progress.getStartTime($1) ?? Date.distantPast
-            return left > right
-        }
-    }
-    
-    var title: String
-    
-    var body: some View {
-        NavigationView {
-            List {
-                Section {
-                    ProgressBar(progress: progress)
-                }
-                
-                Section {
-                    Button(action: {
-                        progress.clear()
-                    }) {
-                        Text("Clear history")
-                    }
-                }
-                
-                Section {
-                    let keys = progress.keys()
-                    if keys.isEmpty {
-                        Text("Empty")
-                            .foregroundColor(.gray)
-                    } else {
-                        ForEach(progressKeys, id: \.self) { key in
-                            HStack {
-                                ProgressItem(key: key, progress: progress)
-                            }
-                        }
-                    }
-                }
-            }
-            .navigationTitle(title)
-        }
-        .refreshable {
-            print("refreshing")
-            storageApi.downloadMetadata()
-        }
-    }
-}
 
 struct ProgressBar: View {
     @ObservedObject var progress: Progress

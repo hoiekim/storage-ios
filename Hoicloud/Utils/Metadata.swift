@@ -12,7 +12,7 @@ import CoreLocation
 
 struct Metadata: Identifiable, Codable, Equatable {
     let id: Int
-    var item_id: String
+    let item_id: String
     let filekey: String?
     let filename: String
     let filesize: Int

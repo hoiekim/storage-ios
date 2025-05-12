@@ -73,6 +73,7 @@ final class TusUtil {
         do {
             let ids = try tusClient.failedUploadIDs()
             for id in ids {
+                tusClient.
                 try tusClient.retry(id: id)
             }
         } catch {

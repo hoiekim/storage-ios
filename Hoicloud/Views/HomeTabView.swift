@@ -11,8 +11,9 @@ import PhotosUI
 struct HomeTabView: View {
     @EnvironmentObject var tabRouter: TabRouter
     
-    @State private var showConfiguration = false
-    @State private var showAddItemSheet = false
+    @Binding var showConfiguration: Bool
+    @Binding var showAddItemSheet: Bool
+    
     @State private var isSelecting = false
     @State private var selectedItems: [Metadata] = []
     @State private var sortedPhotos: [Metadata] = []
@@ -66,9 +67,6 @@ struct HomeTabView: View {
                     }
                 }
             }
-            .onChange(of: storageApi.photos) {
-                sortPhotos()
-            }
             .onChange(of: anyOfMultiple) {
                 Task {
                     if await storageApi.healthCheck() {
@@ -77,6 +75,9 @@ struct HomeTabView: View {
                         showConfiguration = true
                     }
                 }
+            }
+            .onChange(of: storageApi.photos) {
+                sortPhotos()
             }
             .toolbar {
                 if isSelecting {
@@ -102,15 +103,15 @@ struct HomeTabView: View {
                     }
                 } else {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        // add button
-                        Button(action: startAddItem) {
-                            Image(systemName: "plus.circle.fill")
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarTrailing) {
                         // select button
                         Button(action: startSelecting) {
                             Image(systemName: "checkmark.circle.fill")
+                        }
+                    }
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        // add button
+                        Button(action: startAddItem) {
+                            Image(systemName: "plus.circle.fill")
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
@@ -120,12 +121,6 @@ struct HomeTabView: View {
                         }
                     }
                 }
-            }
-            .sheet(isPresented: $showConfiguration) {
-                ConfigurationView(show: $showConfiguration)
-            }
-            .sheet(isPresented: $showAddItemSheet) {
-                ImagePickerView(show: $showAddItemSheet)
             }
             .navigationViewStyle(StackNavigationViewStyle())
         }

@@ -17,18 +17,28 @@ final class SyncUtil {
     
     private var storageApi = StorageApi.shared
     
-    private let userDefaultsKey = "lastSyncedPhotoDate"
-    private var lastSyncedDate: Date? {
+    private let isSyncEnabledKey = "isSyncEnabled"
+    private var isSyncEnabled: Bool {
         get {
-            UserDefaults.standard.object(forKey: userDefaultsKey) as? Date
+            UserDefaults.standard.object(forKey: isSyncEnabledKey) as? Bool ?? false
         }
         set {
-            UserDefaults.standard.set(newValue, forKey: userDefaultsKey)
+            UserDefaults.standard.set(newValue, forKey: isSyncEnabledKey)
+        }
+    }
+    
+    private let lastSyncedDateKey = "lastSyncedPhotoDate"
+    private var lastSyncedDate: Date? {
+        get {
+            UserDefaults.standard.object(forKey: lastSyncedDateKey) as? Date
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: lastSyncedDateKey)
         }
     }
     
     func start() async {
-        print("sync started")
+        guard isSyncEnabled else { return }
         
         // Check photo library authorization status
         let status = await withCheckedContinuation { continuation in
@@ -42,17 +52,13 @@ final class SyncUtil {
             return
         }
         
-        await syncNewAssets()
-    }
-    
-    
-    func syncNewAssets() async {
-        print("syncNewAssets called")
+        print("sync new assets")
         await self.storageApi.waitForUpload(lowerThan: SYNC_BATCH_SIZE)
         var newAssets: [PHAsset] = self.fetchNewAssets(since: self.lastSyncedDate)
         
         while !newAssets.isEmpty {
             for asset in newAssets {
+                guard isSyncEnabled else { return }
                 guard let url = await self.getAssetUrl(for: asset) else { continue }
                 
                 await self.storageApi.uploadWithUrl(
@@ -69,8 +75,13 @@ final class SyncUtil {
             
             await self.storageApi.waitForUpload(lowerThan: SYNC_BATCH_SIZE)
             newAssets = self.fetchNewAssets(since: self.lastSyncedDate)
-            print("syncNewAssets finished a batch. lastSyncedDate: \(String(describing: self.lastSyncedDate))")
+            print("finished a batch for sync. lastSyncedDate: \(String(describing: self.lastSyncedDate))")
         }
+    }
+    
+    func startAgain() async {
+        lastSyncedDate = nil
+        await start()
     }
 
     private func fetchNewAssets(since date: Date?) -> [PHAsset] {

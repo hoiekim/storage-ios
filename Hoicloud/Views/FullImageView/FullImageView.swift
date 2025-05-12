@@ -91,12 +91,14 @@ struct FullImageView: View {
                             photo: metadataItem.metadata,
                             show: $showMetadata
                         )
+                        .presentationDragIndicator(.visible)
                     } else if let assetItem = item as? AssetItem {
                         let assetMetadata = Metadata.from(asset: assetItem.asset)
                         MetadataView(
                             photo: assetMetadata,
                             show: $showMetadata
                         )
+                        .presentationDragIndicator(.visible)
                     }
                 }
             }
