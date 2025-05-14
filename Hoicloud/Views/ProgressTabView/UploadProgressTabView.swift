@@ -17,7 +17,7 @@ struct UploadProgressTabView: View {
     @AppStorage("isSyncEnabled") var isSyncEnabled = false
     
     private var progressKeys: [String] {
-        return progress.keys().sorted {
+        return Array(progress.keys().prefix(20)).sorted {
             let left = progress.getStartTime($0) ?? Date.distantPast
             let right = progress.getStartTime($1) ?? Date.distantPast
             return left > right
@@ -28,7 +28,7 @@ struct UploadProgressTabView: View {
         NavigationView {
             List {
                 Section {
-                    ProgressBar(progress: progress)
+                    ProgressBarGraphView(progress: progress)
                 }
                 
                 Section {
@@ -45,8 +45,11 @@ struct UploadProgressTabView: View {
                             .foregroundColor(.gray)
                     } else {
                         ForEach(progressKeys, id: \.self) { key in
-                            HStack {
-                                ProgressItem(key: key, progress: progress)
+                            ProgressItemView(key: key, progress: progress)
+                        }
+                        if progress.size() > 20 {
+                            NavigationLink(destination: renderShowMoreDestination()) {
+                                Text("Show more")
                             }
                         }
                     }
@@ -68,6 +71,11 @@ struct UploadProgressTabView: View {
                 }
             }
         }
+    }
+    
+    @ViewBuilder
+    private func renderShowMoreDestination() -> some View {
+        MoreProgressItemsView(progress: progress, title: "All Uploads")
     }
     
     private func startConfiguration() {

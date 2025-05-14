@@ -37,7 +37,7 @@ final class SyncUtil {
         }
     }
     
-    func start() async {
+    func start(recursively: Bool = true) async {
         guard isSyncEnabled else { return }
         
         // Check photo library authorization status
@@ -74,8 +74,13 @@ final class SyncUtil {
             }
             
             await self.storageApi.waitForUpload(lowerThan: SYNC_BATCH_SIZE)
-            newAssets = self.fetchNewAssets(since: self.lastSyncedDate)
             print("finished a batch for sync. lastSyncedDate: \(String(describing: self.lastSyncedDate))")
+            
+            if recursively {
+                newAssets = self.fetchNewAssets(since: self.lastSyncedDate)
+            } else {
+                newAssets = []
+            }
         }
     }
     

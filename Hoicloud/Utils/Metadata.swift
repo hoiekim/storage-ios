@@ -46,12 +46,18 @@ struct Metadata: Identifiable, Codable, Equatable {
         var mimeType = "application/octet-stream"
         switch asset.mediaType {
         case .image:
-            if filename.lowercased().hasSuffix("png") {
+            if filename.lowercased().hasSuffix(".png") {
                 mimeType = "image/png"
-            } else if filename.lowercased().hasSuffix("gif") {
+            } else if filename.lowercased().hasSuffix(".gif") {
                 mimeType = "image/gif"
-            } else {
+            } else if filename.lowercased().hasSuffix(".heic") {
+                mimeType = "image/heic"
+            } else if filename.lowercased().hasSuffix(".jpg") {
                 mimeType = "image/jpeg"
+            } else if filename.lowercased().hasSuffix(".jpeg") {
+                mimeType = "image/jpeg"
+            } else {
+                mimeType = "image/unknown"
             }
         case .video:
             mimeType = "video/mp4"
@@ -113,4 +119,11 @@ struct Metadata: Identifiable, Codable, Equatable {
             uploaded: nil
         )
     }
+}
+
+struct MetadataLabel: Identifiable, Codable, Equatable  {
+    let id: Int;
+    let metadata_id: Int;
+    let user_id: Int;
+    let labelname: String;
 }

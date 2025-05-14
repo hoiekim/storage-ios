@@ -27,24 +27,26 @@ struct FullImageView: View {
     @State private var selectedIndex: Int = 0
     @State private var mediaCache: [Int: MediaCache] = [:]
     
-    init(photo: Metadata, photos: [Metadata] = []) {
+    init(photo: Metadata, photos: [Metadata]? = nil) {
         self._metadataItem = State(initialValue: MetadataItem(metadata: photo))
-        self._metadataItems = State(initialValue: photos.map { MetadataItem(metadata: $0) })
+        let photosArray = photos ?? [photo]
+        self._metadataItems = State(initialValue: photosArray.map { MetadataItem(metadata: $0) })
         self._isAsset = State(initialValue: false)
         
         // Find the index of the current item
-        if let index = photos.firstIndex(where: { $0.item_id == photo.item_id }) {
+        if let index = photosArray.firstIndex(where: { $0.item_id == photo.item_id }) {
             self._selectedIndex = State(initialValue: index)
         }
     }
     
-    init(asset: PHAsset, assets: [PHAsset] = []) {
+    init(asset: PHAsset, assets: [PHAsset]? = nil) {
         self._assetItem = State(initialValue: AssetItem(asset: asset))
-        self._assetItems = State(initialValue: assets.map { AssetItem(asset: $0) })
+        let assetsArray = assets ?? [asset]
+        self._assetItems = State(initialValue: assetsArray.map { AssetItem(asset: $0) })
         self._isAsset = State(initialValue: true)
         
         // Find the index of the current item
-        if let index = assets.firstIndex(where: { $0.localIdentifier == asset.localIdentifier }) {
+        if let index = assetsArray.firstIndex(where: { $0.localIdentifier == asset.localIdentifier }) {
             self._selectedIndex = State(initialValue: index)
         }
     }

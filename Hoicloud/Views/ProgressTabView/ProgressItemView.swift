@@ -1,90 +1,14 @@
 //
-//  ProgressBar.swift
+//  ProgressItemView.swift
 //  Hoicloud
 //
-//  Created by Hoie Kim on 5/11/25.
+//  Created by Hoie Kim on 5/12/25.
 //
 
 import SwiftUI
 import Photos
 
-struct ProgressBar: View {
-    @ObservedObject var progress: Progress
-    
-    var body: some View {
-        VStack {
-            HStack {
-                Text("Total progress")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .font(.system(size: 14))
-                Text(progress.toString())
-                    .multilineTextAlignment(.trailing)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            }
-            
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .diagonalStripes(
-                            color1: .gray.opacity(0.15),
-                            color2: .black.opacity(0.15),
-                            lineWidth: 5,
-                            spacing: 5
-                        )
-                    if !progress.isEmpty() {
-                        let barWidth = geometry.size.width
-                        let completed = barWidth * progress.completedRate()
-                        let partial = barWidth * progress.partiallyCompletedRate()
-                        let pending = barWidth * (1 - progress.overallRate())
-                        HStack(spacing: 0) {
-                            Rectangle()
-                                .fill(.indigo)
-                                .frame(width: completed)
-                            Rectangle()
-                                .fill(.blue)
-                                .frame(width: partial)
-                            Rectangle()
-                                .fill(.gray)
-                                .frame(width: pending)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-                .cornerRadius(2)
-            }
-            .frame(height: 10)
-            .animation(.linear, value: progress.overallRate())
-            .padding(.bottom, 8)
-            
-            HStack(spacing: 10) {
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(.indigo)
-                        .frame(width: 8, height: 8)
-                    Text("Completed")
-                        .font(.system(size: 10))
-                }
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(.blue)
-                        .frame(width: 8, height: 8)
-                    Text("Processing")
-                        .font(.system(size: 10))
-                }
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(.gray)
-                        .frame(width: 8, height: 8)
-                    Text("Queued")
-                        .font(.system(size: 10))
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
-struct ProgressItem: View {
+struct ProgressItemView: View {
     var key: String
     
     @ObservedObject var progress: Progress
@@ -96,7 +20,7 @@ struct ProgressItem: View {
     @State var photo: Metadata?
     @State var photos: [Metadata] = []
     
-    private let storageApi = StorageApi.shared
+    @ObservedObject private var storageApi = StorageApi.shared
     
     var body: some View {
         if let uiImage = uiImage {
@@ -134,6 +58,7 @@ struct ProgressItem: View {
                 Text(assetMetadata?.filename ?? photo?.filename ?? "Unknown")
             }
         } else {
+            // SwiftUI default spinner
             ProgressView()
                 .onAppear {
                     if let photo = storageApi.photos[key] {
@@ -141,6 +66,9 @@ struct ProgressItem: View {
                     } else {
                         resolveAsset()
                     }
+                }
+                .onChange(of: storageApi.thumbnails[key]) {
+                    self.uiImage = storageApi.thumbnails[key]
                 }
         }
     }
@@ -157,7 +85,7 @@ struct ProgressItem: View {
     
     private func resolvePhotoMetadata(photo: Metadata) {
         self.photo = photo
-        self.uiImage = storageApi.thumbnails[key]
+        storageApi.downloadThumbnail(id: key)
     }
     
     private func resolveAsset() {

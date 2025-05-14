@@ -21,7 +21,6 @@ struct HomeTabView: View {
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     @ObservedObject private var storageApi = StorageApi.shared
-    @ObservedObject private var uploadProgress = Progress.uploads
     @ObservedObject private var downloadProgress = Progress.downloads
     
     let columns = [
@@ -168,7 +167,7 @@ struct HomeTabView: View {
                 print("Downloading: \(filekey)")
                 downloadProgress.update(id: filekey, rate: 0.1)
                 if let data = await storageApi.getFullImageData(filekey: filekey) {
-                    downloadProgress.update(id: filekey, rate: 0.60)
+                    downloadProgress.update(id: filekey, rate: 0.80)
                     if let image = UIImage(data: data) {
                         downloadProgress.update(id: filekey, rate: 0.90)
                         ImageSaver().writeToPhotoAlbum(image: image)

@@ -14,15 +14,15 @@ final class TusUtil {
     let tusClient: TUSClient
     let progress = Progress.uploads
     
-    var _apiHost: String
-    var _apiKey: String
+    var apiHost: String
+    var apiKey: String
 
     init(
         apiHost: String,
         apiKey: String
     ) {
-        _apiHost = apiHost
-        _apiKey = apiKey
+        self.apiHost = apiHost
+        self.apiKey = apiKey
         
         tusClient = try! TUSClient(
             server: URL(string: "\(apiHost)/tus")!,
@@ -47,7 +47,6 @@ final class TusUtil {
     
     func uploadWithUrl(url: URL, itemId: String) async {
         do {
-            print("url: \(url), itemId: \(itemId)")
             let filename = url.lastPathComponent
             var uploadMetadata = [
                 "itemId": itemId,
@@ -55,7 +54,7 @@ final class TusUtil {
             ]
             uploadMetadata["itemId"] = itemId
             let customHeaders = [
-                "Authorization": "Bearer \(_apiKey)",
+                "Authorization": "Bearer \(apiKey)",
                 "Upload-Metadata": stringifyMetadata(uploadMetadata)
             ]
             try tusClient.uploadFileAt(
@@ -63,6 +62,7 @@ final class TusUtil {
                 customHeaders: customHeaders,
                 context: uploadMetadata
             )
+            progress.start(id: itemId)
         } catch {
             print("Failed to upload: \(url), \(itemId)")
             print(error)
@@ -73,7 +73,6 @@ final class TusUtil {
         do {
             let ids = try tusClient.failedUploadIDs()
             for id in ids {
-                tusClient.
                 try tusClient.retry(id: id)
             }
         } catch {

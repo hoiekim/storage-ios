@@ -96,7 +96,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
         
         Task {
             print("Starting sync operation for task \(taskID)...")
-            await SyncUtil.shared.start()
+            await SyncUtil.shared.start(recursively: false)
             print("✅ Sync operation completed for task \(taskID)")
             
             task.setTaskCompleted(success: true)

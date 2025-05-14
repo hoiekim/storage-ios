@@ -42,26 +42,31 @@ class Progress: ObservableObject {
     }
     
     func start(id: String) {
-        dict[id] = ProgressData(id: id, rate: 0, startTime: Date())
+        DispatchQueue.main.async {
+            self.dict[id] = ProgressData(id: id, rate: 0, startTime: Date())
+        }
     }
     
     func complete(id: String) {
-        if var data = dict[id] {
-            data.rate = 1
-            dict[id] = data
+        guard var data = dict[id] else { return }
+        data.rate = 1
+        DispatchQueue.main.async {
+            self.dict[id] = data
         }
-        
     }
     
     func update(id: String, rate: CGFloat) {
-        if var data = dict[id] {
-            data.rate = rate
-            dict[id] = data
+        guard var data = dict[id] else { return }
+        data.rate = rate
+        DispatchQueue.main.async {
+            self.dict[id] = data
         }
     }
     
     func remove(id: String) {
-        dict.removeValue(forKey: id)
+        DispatchQueue.main.async {
+            self.dict.removeValue(forKey: id)
+        }
     }
     
     func isEmpty() -> Bool {
@@ -69,7 +74,9 @@ class Progress: ObservableObject {
     }
     
     func clear() {
-        dict.removeAll()
+        DispatchQueue.main.async {
+            self.dict.removeAll()
+        }
     }
     
     func size() -> Int {
