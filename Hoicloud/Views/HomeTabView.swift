@@ -35,6 +35,11 @@ struct HomeTabView: View {
     var body: some View {
         NavigationView {
             ScrollView {
+                LazyVGrid(columns: columns, spacing: 1) {
+                    ForEach(Array(sortedPhotos.enumerated()), id: \.1.id) { index, photo in
+                        renderStack(photo: photo, index: index)
+                    }
+                }
                 if numberOfPhotos == 0 {
                     Text("Your cloud is empty")
                         .multilineTextAlignment(.center)
@@ -42,14 +47,9 @@ struct HomeTabView: View {
                         .padding(.bottom, 10.0)
                         .padding(.leading, 10.0)
                         .padding(.trailing, 10.0)
-                } else {
-                    LazyVGrid(columns: columns, spacing: 1) {
-                        ForEach(sortedPhotos) { photo in
-                            renderStack(photo)
-                        }
-                    }
                 }
             }
+            .coordinateSpace(name: "scroll")
             .frame(maxWidth: .infinity)
             .navigationTitle("Hoicloud")
             .onAppear {
@@ -65,6 +65,7 @@ struct HomeTabView: View {
                         }
                     }
                 }
+                storageApi.tusUtil.resume()
             }
             .onChange(of: anyOfMultiple) {
                 Task {
@@ -77,6 +78,9 @@ struct HomeTabView: View {
             }
             .onChange(of: storageApi.photos) {
                 sortPhotos()
+            }
+            .onPreferenceChange(VisibleIndexKey.self) { indices in
+                onVisibleIndicesChange(indices)
             }
             .toolbar {
                 if isSelecting {
@@ -130,15 +134,22 @@ struct HomeTabView: View {
     }
     
     @ViewBuilder
-    private func renderStack(_ photo: Metadata) -> some View {
-        ImageStackView(
-            photo: photo,
-            selectedItems: $selectedItems,
-            isSelecting: $isSelecting,
-            destination: {
-                FullImageView(photo: photo, photos: sortedPhotos)
-            }
-        )
+    private func renderStack(photo: Metadata, index: Int) -> some View {
+        let screenWidth = UIScreen.main.bounds.width
+        let tileHeight = screenWidth / 3
+        
+        GeometryReader { _ in
+            ImageStackView(
+                photo: photo,
+                selectedItems: $selectedItems,
+                isSelecting: $isSelecting,
+                destination: {
+                    FullImageView(photo: photo, photos: sortedPhotos)
+                }
+            )
+            .preference(key: VisibleIndexKey.self, value: [index])
+        }
+        .frame(height: tileHeight)
     }
     
     private func sortPhotos() {
@@ -203,5 +214,38 @@ struct HomeTabView: View {
     
     private func startConfiguration() {
         showConfiguration = true
+    }
+    
+    @State private var prefetchWorkItem: DispatchWorkItem?
+    
+    private func onVisibleIndicesChange(_ indices: Set<Int>) {
+        prefetchWorkItem?.cancel()
+        let work = DispatchWorkItem {
+            let margin = 30
+            guard let minIndex = indices.min(), let maxIndex = indices.max() else { return }
+
+            let start = max(minIndex - margin, 0)
+            let end = min(maxIndex + margin, sortedPhotos.count - 1)
+
+            for (index, photo) in sortedPhotos.enumerated() {
+                guard let filekey = photo.filekey else { continue }
+                if index >= start && index <= end {
+                    storageApi.downloadThumbnail(for: filekey)
+                } else {
+                    storageApi.cancelThumbnailFetch(for: filekey)
+                    storageApi.uncacheThumbnail(for: filekey)
+                }
+            }
+        }
+        prefetchWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
+    }
+}
+
+struct VisibleIndexKey: PreferenceKey {
+    static var defaultValue: Set<Int> = []
+    
+    static func reduce(value: inout Set<Int>, nextValue: () -> Set<Int>) {
+        value.formUnion(nextValue())
     }
 }

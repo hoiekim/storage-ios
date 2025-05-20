@@ -90,21 +90,14 @@ struct ImageStackView<Content: View>: View {
                             }
                         }
                     }
+                    .onDisappear {
+//                        storageApi.uncacheThumbnail(for: filekey)
+                    }
             } else {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
                     .frame(height: tileHeight)
                     .overlay(ProgressView())
-                    .onAppear {
-                        if let filekey = photo.filekey {
-                            storageApi.downloadThumbnail(id: filekey)
-                        }
-                    }
-                    .onDisappear {
-                        if let filekey = photo.filekey {
-                            storageApi.cancelThumbnailFetch(for: filekey)
-                        }
-                    }
             }
         }
     }

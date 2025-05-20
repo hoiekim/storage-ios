@@ -15,11 +15,11 @@ struct DownloadProgressTabView: View {
     @ObservedObject var progress = Progress.downloads
     
     private var progressKeys: [String] {
-        return Array(progress.keys().prefix(20)).sorted {
+        return Array(progress.keys().sorted {
             let left = progress.getStartTime($0) ?? Date.distantPast
             let right = progress.getStartTime($1) ?? Date.distantPast
             return left > right
-        }
+        }.prefix(20))
     }
     
     var body: some View {
@@ -63,6 +63,9 @@ struct DownloadProgressTabView: View {
                     }
                 }
             }
+        }
+        .onAppear {
+            storageApi.tusUtil.resume()
         }
     }
     

@@ -40,6 +40,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
         if _tusUtil == nil || _tusUtil!.apiHost != apiHost || _tusUtil!.apiKey != apiKey {
             print("initializing tusUtil")
             _tusUtil = TusUtil(apiHost: apiHost, apiKey: apiKey)
+            _tusUtil!.retryFailedUploads()
         }
         return _tusUtil!
     }
@@ -131,7 +132,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
         return await getMetadata(route: .metadataByItemId, parameter: itemId)
     }
 
-    func downloadThumbnail(id: String) {
+    func downloadThumbnail(for id: String) {
         guard thumbnails[id] == nil else { return }
         
         // Cancel any existing task for this identifier
@@ -173,6 +174,10 @@ class StorageApi: ObservableObject, @unchecked Sendable {
         downloadThumbnailTasks[id] = nil
     }
     
+    func uncacheThumbnail(for id: String) {
+        thumbnails[id] = nil
+    }
+    
     func getFullImageRequest(filekey: String) -> URLRequest? {
         if let request = getUrlRequest(
             apiHost: self.apiHost,
@@ -198,7 +203,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
         return data
     }
     
-    func uploadItem(item: PhotosPickerItem, created: Date? = nil) async {
+    func uploadItem(item: PhotosPickerItem) async {
         do {
             let fileUrl = try await item.loadTransferable(type: ClonedDataUrl.self)!
             let url = fileUrl.url
@@ -208,20 +213,37 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                 print("Item already uploaded: \(itemId)")
                 return
             }
-            await tusUtil.uploadWithUrl(url: url, itemId: itemId)
+            let created = await getCreationDate(from: item)
+            let labels = await extractLabels(from: item)
+            await tusUtil.uploadWithUrl(
+                url: url,
+                itemId: itemId,
+                created: created,
+                labels: labels
+            )
         } catch {
             print("Failed to upload item: \(item)")
             print(error)
         }
     }
     
-    func uploadWithUrl(url: URL, itemId: String, created: Date? = nil) async {
+    func uploadWithUrl(
+        url: URL,
+        itemId: String,
+        created: Date? = nil,
+        labels: [String]? = nil
+    ) async {
         let existing = await getMetadataByItemId(itemId: itemId)
         if existing != nil {
             print("Item already uploaded: \(itemId)")
             return
         }
-        await tusUtil.uploadWithUrl(url: url, itemId: itemId)
+        await tusUtil.uploadWithUrl(
+            url: url,
+            itemId: itemId,
+            created: created,
+            labels: labels
+        )
     }
     
     func waitForUpload(lowerThan: Int) async {

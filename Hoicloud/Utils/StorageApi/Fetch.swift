@@ -73,14 +73,9 @@ class Fetch {
             ) else { return nil }
             
             if body != nil {
-                let httpBody = try? JSONSerialization.data(
-                    withJSONObject: body!,
-                    options: []
-                )
-                
-                if httpBody != nil {
-                    request.httpBody = httpBody!
-                }
+                let httpBody = try JSONEncoder().encode(body!)
+                request.httpBody = httpBody
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             }
             
             let (data, response) = try await URLSession.shared.data(for: request)

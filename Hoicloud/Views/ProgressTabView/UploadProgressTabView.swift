@@ -17,11 +17,11 @@ struct UploadProgressTabView: View {
     @AppStorage("isSyncEnabled") var isSyncEnabled = false
     
     private var progressKeys: [String] {
-        return Array(progress.keys().prefix(20)).sorted {
+        return Array(progress.keys().sorted {
             let left = progress.getStartTime($0) ?? Date.distantPast
             let right = progress.getStartTime($1) ?? Date.distantPast
             return left > right
-        }
+        }.prefix(20))
     }
     
     var body: some View {
@@ -32,9 +32,9 @@ struct UploadProgressTabView: View {
                 }
                 
                 Section {
-                    Toggle("Auto sync", isOn: $isSyncEnabled)
+                    Toggle("Enable sync", isOn: $isSyncEnabled)
                     Button(action: syncNow) {
-                        Text("Sync now")
+                        Text("Refresh & Sync now")
                     }
                 }
                 
@@ -71,6 +71,14 @@ struct UploadProgressTabView: View {
                 }
             }
         }
+        .onChange(of: isSyncEnabled) { _, newValue in
+            if newValue {
+                resumeSync()
+            }
+        }
+        .onAppear {
+            storageApi.tusUtil.resume()
+        }
     }
     
     @ViewBuilder
@@ -80,6 +88,12 @@ struct UploadProgressTabView: View {
     
     private func startConfiguration() {
         showConfiguration = true
+    }
+    
+    private func resumeSync() {
+        Task {
+            await SyncUtil.shared.start()
+        }
     }
     
     private func syncNow() {

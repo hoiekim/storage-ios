@@ -32,6 +32,9 @@ final class TusUtil {
             chunkSize: 0
         )
         
+        print("TUSClient initialized")
+        print("Found \(tusClient.remainingUploads) uploads.")
+        
         tusClient.delegate = self
     }
     
@@ -45,14 +48,24 @@ final class TusUtil {
         }.joined(separator: ",")
     }
     
-    func uploadWithUrl(url: URL, itemId: String) async {
+    func uploadWithUrl(
+        url: URL,
+        itemId: String,
+        created: Date? = nil,
+        labels: [String]? = nil
+    ) async {
         do {
             let filename = url.lastPathComponent
             var uploadMetadata = [
                 "itemId": itemId,
                 "filename": filename
             ]
-            uploadMetadata["itemId"] = itemId
+            if created != nil {
+                uploadMetadata["created"] = created!.ISO8601Format()
+            }
+            if labels != nil && !labels!.isEmpty {
+                uploadMetadata["labels"] = labels!.joined(separator: ",")
+            }
             let customHeaders = [
                 "Authorization": "Bearer \(apiKey)",
                 "Upload-Metadata": stringifyMetadata(uploadMetadata)
@@ -71,17 +84,53 @@ final class TusUtil {
     
     func retryFailedUploads() {
         do {
+            let uploads = try tusClient.getStoredUploads()
             let ids = try tusClient.failedUploadIDs()
+            print("Found \(ids.count) failed uploads to retry")
             for id in ids {
-                try tusClient.retry(id: id)
+                let failedUpload = uploads.first { $0.id == id }
+                if isUploadValid(failedUpload) {
+                    do {
+                        print("Retrying upload \(id)")
+                        try tusClient.retry(id: id)
+                    } catch {
+                        print("Failed retrying upload \(id): \(error)")
+                    }
+                } else {
+                    do {
+                        print("Canceling invalid upload \(id)")
+                        try tusClient.cancel(id: id)
+                        try tusClient.removeCacheFor(id: id)
+                    } catch {
+                        print("Failed canceling upload \(id): \(error)")
+                    }
+                }
             }
         } catch {
             print("Could not fetch failed id's from disk")
         }
     }
     
+    private func isUploadValid(_ upload: UploadInfo?) -> Bool {
+        guard let upload = upload else { return false }
+        let url = upload.uploadURL
+        guard let scheme = url.scheme else { return false }
+        guard let host = url.host() else { return false }
+        if "\(scheme)://\(host)" != apiHost { return false }
+        guard let headers = upload.customHeaders else { return false }
+        guard let authorization = headers["Authorization"] else { return false }
+        print(authorization, apiKey)
+        if authorization != "Bearer \(apiKey)" { return false }
+        return true
+    }
+    
     func remainingUploads() -> Int {
         return tusClient.remainingUploads
+    }
+    
+    @discardableResult
+    func resume() -> [(UUID, [String: String]?)] {
+        return tusClient.start()
     }
 }
 

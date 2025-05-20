@@ -29,6 +29,7 @@ struct ClonedDataUrl: Transferable {
 }
 
 func cleanTemporaryDirectory(olderThan days: Int = 2) {
+    print("Cleaning temporary directory")
     Task {
         let fileManager = FileManager.default
         let tempDirURL = fileManager.temporaryDirectory
@@ -80,4 +81,18 @@ func getHash(url: URL) -> String? {
     }
     let hash = SHA256.hash(data: data)
     return hash.map { String(format: "%02x", $0) }.joined()
+}
+
+func getCreationDate(from item: PhotosPickerItem) async -> Date? {
+    guard let itemID = item.itemIdentifier else {
+        return nil
+    }
+
+    return await withCheckedContinuation { continuation in
+        DispatchQueue.global(qos: .userInitiated).async {
+            let assets = PHAsset.fetchAssets(withLocalIdentifiers: [itemID], options: nil)
+            let asset = assets.firstObject
+            continuation.resume(returning: asset?.creationDate)
+        }
+    }
 }

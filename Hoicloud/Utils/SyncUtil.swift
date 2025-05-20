@@ -15,6 +15,7 @@ final class SyncUtil {
     
     static let shared = SyncUtil()
     
+    private let progress = Progress.uploads
     private var storageApi = StorageApi.shared
     
     private let isSyncEnabledKey = "isSyncEnabled"
@@ -63,7 +64,9 @@ final class SyncUtil {
                 
                 await self.storageApi.uploadWithUrl(
                     url: url,
-                    itemId: asset.localIdentifier
+                    itemId: asset.localIdentifier,
+                    created: asset.creationDate,
+                    labels: extractLabels(from: asset)
                 )
                 
                 if let assetDate = asset.creationDate {

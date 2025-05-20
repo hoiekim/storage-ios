@@ -85,7 +85,7 @@ struct ProgressItemView: View {
     
     private func resolvePhotoMetadata(photo: Metadata) {
         self.photo = photo
-        storageApi.downloadThumbnail(id: key)
+        storageApi.downloadThumbnail(for: key)
     }
     
     private func resolveAsset() {
