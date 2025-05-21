@@ -90,9 +90,6 @@ struct ImageStackView<Content: View>: View {
                             }
                         }
                     }
-                    .onDisappear {
-//                        storageApi.uncacheThumbnail(for: filekey)
-                    }
             } else {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))

@@ -63,6 +63,31 @@ struct ContentView: View {
         }
         .environmentObject(tabRouter)
         .preferredColorScheme(.dark)
+        .onChange(of: anyOfMultiple) {
+            Task {
+                if await storageApi.healthCheck() {
+                    storageApi.downloadMetadata()
+                    storageApi.downloadLabels()
+                } else {
+                    showConfiguration = true
+                }
+            }
+        }
+        .onAppear {
+            if apiHost.isEmpty || apiKey.isEmpty {
+                showConfiguration = true
+            } else {
+                Task {
+                    if await storageApi.healthCheck() {
+                        storageApi.downloadMetadata()
+                        storageApi.downloadLabels()
+                    } else {
+                        showConfiguration = true
+                    }
+                }
+            }
+            storageApi.tusUtil.resume()
+        }
     }
     
     private func startConfiguration() {

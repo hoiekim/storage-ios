@@ -30,7 +30,6 @@ struct HomeTabView: View {
     ]
     
     var numberOfPhotos: Int { storageApi.photos.count }
-    var anyOfMultiple: [String] {[apiHost, apiKey, showConfiguration.description]}
     
     var body: some View {
         NavigationView {
@@ -52,30 +51,6 @@ struct HomeTabView: View {
             .coordinateSpace(name: "scroll")
             .frame(maxWidth: .infinity)
             .navigationTitle("Hoicloud")
-            .onAppear {
-                if apiHost.isEmpty || apiKey.isEmpty {
-                    showConfiguration = true
-                } else {
-                    sortPhotos()
-                    Task {
-                        if await storageApi.healthCheck() {
-                            storageApi.downloadMetadata()
-                        } else {
-                            showConfiguration = true
-                        }
-                    }
-                }
-                storageApi.tusUtil.resume()
-            }
-            .onChange(of: anyOfMultiple) {
-                Task {
-                    if await storageApi.healthCheck() {
-                        storageApi.downloadMetadata()
-                    } else {
-                        showConfiguration = true
-                    }
-                }
-            }
             .onChange(of: storageApi.photos) {
                 sortPhotos()
             }
@@ -99,7 +74,7 @@ struct HomeTabView: View {
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        // select button
+                        // select cancel button
                         Button(action: finishSelecting) {
                             Text("Cancel")
                         }
@@ -128,8 +103,8 @@ struct HomeTabView: View {
             .navigationViewStyle(StackNavigationViewStyle())
         }
         .refreshable {
-            print("refreshing")
             storageApi.downloadMetadata()
+            storageApi.downloadLabels()
         }
     }
     

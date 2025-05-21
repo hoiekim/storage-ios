@@ -59,6 +59,9 @@ final class SyncUtil {
         
         while !newAssets.isEmpty {
             for asset in newAssets {
+                progress.start(id: asset.localIdentifier)
+            }
+            for asset in newAssets {
                 guard isSyncEnabled else { return }
                 guard let url = await self.getAssetUrl(for: asset) else { continue }
                 

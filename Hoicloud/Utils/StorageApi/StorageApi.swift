@@ -24,16 +24,14 @@ struct LabelsResponse: Codable {
 
 class StorageApi: ObservableObject, @unchecked Sendable {
     static let shared = StorageApi()
+    private let fetch = Fetch()
     
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     
-    private let fetch = Fetch()
-    
     @Published var photos: [String: Metadata] = [:]
     @Published var thumbnails: [String: UIImage] = [:]
-    private var downloadMetadataTask: Task<Void, Never>?
-    private var downloadThumbnailTasks: [String: Task<Void, Never>] = [:]
+    @Published var labels: [Int: [String]] = [:]
     
     private var _tusUtil: TusUtil?
     var tusUtil: TusUtil {
@@ -59,6 +57,8 @@ class StorageApi: ObservableObject, @unchecked Sendable {
         
         return false
     }
+    
+    private var downloadMetadataTask: Task<Void, Never>?
     
     func downloadMetadata() {
         downloadMetadataTask?.cancel()
@@ -131,6 +131,46 @@ class StorageApi: ObservableObject, @unchecked Sendable {
     func getMetadataByItemId(itemId: String) async -> Metadata? {
         return await getMetadata(route: .metadataByItemId, parameter: itemId)
     }
+    
+    private var downloadLablesTask: Task<Void, Never>?
+    
+    func downloadLabels() {
+        downloadLablesTask?.cancel()
+        downloadLablesTask = Task {
+            do {
+                try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
+                guard !Task.isCancelled else { return }
+                guard let fetchResult = await fetch.json(
+                    LabelsResponse.self,
+                    route: "labels"
+                ) else { return }
+                let (_, json) = fetchResult
+                
+                guard let body = json.body else {
+                    print("No data returned: \(json.message ?? "Unknown")")
+                    return
+                }
+                
+                guard !Task.isCancelled else { return }
+                
+                DispatchQueue.main.async {
+                    var labels: [Int: [String]] = [:]
+                    for label in body {
+                        if var existing = labels[label.metadata_id] {
+                            existing.append(label.labelname)
+                        } else {
+                            labels[label.metadata_id] = [label.labelname]
+                        }
+                    }
+                    self.labels = labels
+                }
+            } catch {
+                print("Error fetching labels: \(error)")
+            }
+        }
+    }
+    
+    private var downloadThumbnailTasks: [String: Task<Void, Never>] = [:]
 
     func downloadThumbnail(for id: String) {
         guard thumbnails[id] == nil else { return }
@@ -190,7 +230,6 @@ class StorageApi: ObservableObject, @unchecked Sendable {
     }
     
     func getFullImageData(filekey: String) async -> Data? {
-        
         guard let fetchResult = await fetch.data(
             route: "file",
             parameter: filekey
