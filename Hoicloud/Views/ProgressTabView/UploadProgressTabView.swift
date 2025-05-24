@@ -94,11 +94,17 @@ struct UploadProgressTabView: View {
         Task {
             await SyncUtil.shared.start()
         }
+        Task {
+            await SyncUtil.shared.uploadMissingLabels()
+        }
     }
     
     private func syncNow() {
         Task {
             await SyncUtil.shared.startAgain()
+        }
+        Task {
+            await SyncUtil.shared.uploadMissingLabels()
         }
     }
 }

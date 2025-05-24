@@ -101,6 +101,32 @@ struct MetadataView: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
+            
+            Section {
+                HStack(spacing: 0) {
+                    Text("Labels")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                }
+                
+                if let labels = storageApi.labels[photo.id], !labels.isEmpty {
+                    FlowLayout() {
+                        ForEach(labels, id: \.self) { label in
+                            Text(label)
+                                .font(.system(size: 14))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                                .background(Color.blue.opacity(0.2))
+                                .cornerRadius(8)
+                        }
+                    }
+                } else {
+                    Text("No labels")
+                        .italic()
+                        .foregroundColor(.gray)
+                }
+            }
             Section {
                 Button(action: deletePhoto) {
                     Text("Delete")

@@ -131,4 +131,23 @@ final class SyncUtil {
             }
         }
     }
+    
+    func uploadMissingLabels() async -> Int {
+        let labelMissingPhotos = storageApi.photos.filter {
+            let metadata_id = $0.value.id
+            let labels = storageApi.labels[metadata_id]
+            return labels == nil
+        }
+        
+        for (_, photo) in labelMissingPhotos {
+            guard let filekey = photo.filekey else { continue }
+            let imageData = await storageApi.getFullImageData(filekey: filekey)
+            guard let imageData else { continue }
+            guard let image = UIImage(data: imageData) else { continue }
+            let labels = await extractLabels(from: image)
+            await storageApi.uploadLabels(itemId: photo.item_id, labels: labels)
+        }
+        
+        return labelMissingPhotos.count
+    }
 }

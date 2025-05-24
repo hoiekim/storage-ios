@@ -41,6 +41,12 @@ class BackgroundUtil {
             task.setTaskCompleted(success: true)
             scheduleBackgroundTask()
         }
+        
+        Task {
+            print("Uploading missing labels...")
+            let labelMissingPhotosCount = await SyncUtil.shared.uploadMissingLabels()
+            print("✅ Uploaded labels for \(labelMissingPhotosCount) photos.")
+        }
     }
     
     static func scheduleBackgroundTask() {

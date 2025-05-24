@@ -16,8 +16,9 @@ struct HomeTabView: View {
     
     @State private var isSelecting = false
     @State private var selectedItems: [Metadata] = []
-    @State private var sortedPhotos: [Metadata] = []
-
+    @State private var searchText = ""
+    @State private var isSearching = false
+    
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
     @ObservedObject private var storageApi = StorageApi.shared
@@ -31,29 +32,64 @@ struct HomeTabView: View {
     
     var numberOfPhotos: Int { storageApi.photos.count }
     
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 1) {
-                    ForEach(Array(sortedPhotos.enumerated()), id: \.1.id) { index, photo in
-                        renderStack(photo: photo, index: index)
+    var sortedPhotos: [Metadata] {
+        if searchText.isEmpty {
+            let sorted = self.storageApi.photos.values.sorted { left, right in
+                let s1 = left.created ?? left.uploaded ?? Date.distantPast.ISO8601Format()
+                let s2 = right.created ?? right.uploaded ?? Date.distantPast.ISO8601Format()
+                return s2 < s1
+            }
+            return sorted
+        } else {
+            // Sort all photos by match score based on labels
+            return self.storageApi.photos.values.map { photo in
+                var bestScore = 0.0
+                if let labels = storageApi.labels[photo.id] {
+                    for label in labels {
+                        let score = getMatchScore(string: label, to: searchText)
+                        bestScore = max(bestScore, score)
+                        
+                        if label.lowercased().contains(searchText.lowercased()) {
+                            bestScore = max(bestScore, 0.9)
+                        }
                     }
                 }
-                if numberOfPhotos == 0 {
-                    Text("Your cloud is empty")
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 30.0)
-                        .padding(.bottom, 10.0)
-                        .padding(.leading, 10.0)
-                        .padding(.trailing, 10.0)
+                return (photo, bestScore)
+            }
+            .sorted { $0.1 > $1.1 }
+            .map { $0.0 }
+        }
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: 1) {
+                        ForEach(Array(sortedPhotos.enumerated()), id: \.1.id) { index, photo in
+                            renderStack(photo: photo, index: index)
+                        }
+                    }
+                    if sortedPhotos.isEmpty && !searchText.isEmpty {
+                        Text("No photos match your search")
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 30.0)
+                            .padding(.bottom, 10.0)
+                            .padding(.leading, 10.0)
+                            .padding(.trailing, 10.0)
+                    } else if numberOfPhotos == 0 {
+                        Text("Your cloud is empty")
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 30.0)
+                            .padding(.bottom, 10.0)
+                            .padding(.leading, 10.0)
+                            .padding(.trailing, 10.0)
+                    }
                 }
             }
             .coordinateSpace(name: "scroll")
             .frame(maxWidth: .infinity)
             .navigationTitle("Hoicloud")
-            .onChange(of: storageApi.photos) {
-                sortPhotos()
-            }
             .onPreferenceChange(VisibleIndexKey.self) { indices in
                 onVisibleIndicesChange(indices)
             }
@@ -106,6 +142,7 @@ struct HomeTabView: View {
             storageApi.downloadMetadata()
             storageApi.downloadLabels()
         }
+        .searchable(text: $searchText, placement: .automatic)
     }
     
     @ViewBuilder
@@ -125,20 +162,6 @@ struct HomeTabView: View {
             .preference(key: VisibleIndexKey.self, value: [index])
         }
         .frame(height: tileHeight)
-    }
-    
-    private func sortPhotos() {
-        DispatchQueue.global(qos: .userInitiated).async {
-            let sorted = self.storageApi.photos.values.sorted { left, right in
-                let s1 = left.created ?? left.uploaded ?? Date.distantPast.ISO8601Format()
-                let s2 = right.created ?? right.uploaded ?? Date.distantPast.ISO8601Format()
-                return s2 < s1
-            }
-            
-            DispatchQueue.main.async {
-                self.sortedPhotos = sorted
-            }
-        }
     }
     
     private func downloadAction() {
@@ -206,14 +229,11 @@ struct HomeTabView: View {
                 guard let filekey = photo.filekey else { continue }
                 if index >= start && index <= end {
                     storageApi.downloadThumbnail(for: filekey)
-                } else {
-                    storageApi.cancelThumbnailFetch(for: filekey)
-                    storageApi.uncacheThumbnail(for: filekey)
                 }
             }
         }
         prefetchWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
     }
 }
 

@@ -156,10 +156,10 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                 DispatchQueue.main.async {
                     var labels: [Int: [String]] = [:]
                     for label in body {
-                        if var existing = labels[label.metadata_id] {
-                            existing.append(label.labelname)
-                        } else {
+                        if labels[label.metadata_id] == nil {
                             labels[label.metadata_id] = [label.labelname]
+                        } else {
+                            labels[label.metadata_id]!.append(label.labelname)
                         }
                     }
                     self.labels = labels
@@ -178,29 +178,19 @@ class StorageApi: ObservableObject, @unchecked Sendable {
         // Cancel any existing task for this identifier
         downloadThumbnailTasks[id]?.cancel()
         downloadThumbnailTasks[id] = Task {
-            do {
-                try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
-                guard !Task.isCancelled else { return }
-                guard let fetchResult = await fetch.data(
-                    route: "thumbnail",
-                    parameter: id
-                ) else { return }
-                let (_, data) = fetchResult
-                guard !Task.isCancelled else { return }
-                if let image = UIImage(data: data) {
-                    DispatchQueue.main.async {
-                        self.thumbnails[id] = image
-                    }
-                } else {
-                    print("Error decoding thumbnail for identifier: \(id)")
-                    let image = UIImage(systemName: "photo.fill")
-                    DispatchQueue.main.async {
-                        self.thumbnails[id] = image
-                    }
+            guard !Task.isCancelled else { return }
+            guard let fetchResult = await fetch.data(
+                route: "thumbnail",
+                parameter: id
+            ) else { return }
+            let (_, data) = fetchResult
+            guard !Task.isCancelled else { return }
+            if let image = UIImage(data: data) {
+                DispatchQueue.main.async {
+                    self.thumbnails[id] = image
                 }
-            } catch {
-                guard !Task.isCancelled else { return }
-                print("Error fetching thumbnail for identifier \(id): \(error.localizedDescription)")
+            } else {
+                print("Error decoding thumbnail for identifier: \(id)")
                 let image = UIImage(systemName: "photo.fill")
                 DispatchQueue.main.async {
                     self.thumbnails[id] = image
@@ -314,14 +304,12 @@ class StorageApi: ObservableObject, @unchecked Sendable {
         }
     }
     
-    func uploadLabels(asset: PHAsset) async {
-        let labels = await extractLabels(from: asset)
-        
+    func uploadLabels(itemId: String, labels: [String]) async {
         guard let fetchResult = await fetch.json(
             UploadResponse.self,
             method: "POST",
             route: "labels",
-            parameter: asset.localIdentifier,
+            parameter: itemId,
             body: labels
         ) else { return }
         
