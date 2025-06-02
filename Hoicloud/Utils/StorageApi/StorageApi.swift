@@ -174,9 +174,8 @@ class StorageApi: ObservableObject, @unchecked Sendable {
 
     func downloadThumbnail(for id: String) {
         guard thumbnails[id] == nil else { return }
+        guard downloadThumbnailTasks[id] == nil else { return }
         
-        // Cancel any existing task for this identifier
-        downloadThumbnailTasks[id]?.cancel()
         downloadThumbnailTasks[id] = Task {
             guard !Task.isCancelled else { return }
             guard let fetchResult = await fetch.data(
@@ -195,13 +194,9 @@ class StorageApi: ObservableObject, @unchecked Sendable {
                 DispatchQueue.main.async {
                     self.thumbnails[id] = image
                 }
+                downloadThumbnailTasks[id] = nil
             }
         }
-    }
-    
-    func cancelThumbnailFetch(for id: String) {
-        downloadThumbnailTasks[id]?.cancel()
-        downloadThumbnailTasks[id] = nil
     }
     
     func uncacheThumbnail(for id: String) {

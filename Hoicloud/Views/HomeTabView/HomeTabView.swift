@@ -17,7 +17,10 @@ struct HomeTabView: View {
     @State private var isSelecting = false
     @State private var selectedItems: [Metadata] = []
     @State private var searchText = ""
-    @State private var isSearching = false
+    @State private var selectedLabels: [String] = []
+    @State private var sortedPhotos: [Metadata] = []
+    @State private var positionID: String? = "photo_0"
+    @State private var sortedPhotosVersion: Int = 0
     
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
@@ -32,117 +35,124 @@ struct HomeTabView: View {
     
     var numberOfPhotos: Int { storageApi.photos.count }
     
-    var sortedPhotos: [Metadata] {
-        if searchText.isEmpty {
-            let sorted = self.storageApi.photos.values.sorted { left, right in
-                let s1 = left.created ?? left.uploaded ?? Date.distantPast.ISO8601Format()
-                let s2 = right.created ?? right.uploaded ?? Date.distantPast.ISO8601Format()
-                return s2 < s1
+    var body: some View {
+        NavigationView {
+            renderScrollView()
+                .coordinateSpace(name: "scroll")
+                .frame(maxWidth: .infinity)
+                .navigationTitle("Hoicloud")
+                .onPreferenceChange(VisibleIndexKey.self) { indices in
+                    onVisibleIndicesChange(indices)
+                }
+                .toolbar { renderToolbar() }
+                .navigationViewStyle(StackNavigationViewStyle())
+        }
+        .onChange(of: storageApi.photos) { sortPhotos() }
+        .onChange(of: searchText) { sortPhotos() }
+        .onChange(of: selectedLabels) { sortPhotos() }
+    }
+    
+    @State private var sortTask: Task<Void, Never>?
+    
+    func sortPhotos() {
+        sortTask?.cancel()
+        sortTask = Task {
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            
+            let photosArray = if selectedLabels.isEmpty {
+                Array(storageApi.photos.values)
+            } else {
+                storageApi.photos.values.filter { photo in
+                    if let labels = storageApi.labels[photo.id] {
+                        return Set(labels).intersection(Set(selectedLabels)).count > 0
+                    }
+                    return false
+                }
             }
-            return sorted
-        } else {
-            // Sort all photos by match score based on labels
-            return self.storageApi.photos.values.map { photo in
-                var bestScore = 0.0
-                if let labels = storageApi.labels[photo.id] {
-                    for label in labels {
-                        let score = getMatchScore(string: label, to: searchText)
-                        bestScore = max(bestScore, score)
-                        
-                        if label.lowercased().contains(searchText.lowercased()) {
-                            bestScore = max(bestScore, 0.9)
+            
+            if searchText.isEmpty {
+                let sorted = photosArray.sorted { left, right in
+                    let s1 = left.created ?? left.uploaded ?? Date.distantPast.ISO8601Format()
+                    let s2 = right.created ?? right.uploaded ?? Date.distantPast.ISO8601Format()
+                    return s2 < s1
+                }
+                
+                DispatchQueue.main.async {
+                    self.sortedPhotos = sorted
+                    self.sortedPhotosVersion += 1
+                    self.onVisibleIndicesChange(Set(0..<min(15, sorted.count)))
+                }
+            } else {
+                // Sort all photos by match score based on labels
+                let sorted = photosArray.map { photo in
+                    var bestScore = 0.0
+                    if let labels = storageApi.labels[photo.id] {
+                        var searchPool = Array(labels)
+                        searchPool.append(photo.mime_type)
+                        for label in searchPool {
+                            let score = getMatchScore(string: label, to: searchText)
+                            bestScore = max(bestScore, score)
+                            
+                            if label.lowercased().contains(searchText.lowercased()) {
+                                bestScore = max(bestScore, 0.9)
+                            }
                         }
                     }
+                    return (photo, bestScore)
                 }
-                return (photo, bestScore)
+                .sorted { $0.1 > $1.1 }
+                .map { $0.0 }
+                
+                DispatchQueue.main.async {
+                    self.sortedPhotos = sorted
+                    self.sortedPhotosVersion += 1
+                    self.onVisibleIndicesChange(Set(0..<min(15, sorted.count)))
+                }
             }
-            .sorted { $0.1 > $1.1 }
-            .map { $0.0 }
         }
     }
     
-    var body: some View {
-        NavigationView {
-            VStack {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 1) {
-                        ForEach(Array(sortedPhotos.enumerated()), id: \.1.id) { index, photo in
-                            renderStack(photo: photo, index: index)
-                        }
-                    }
-                    if sortedPhotos.isEmpty && !searchText.isEmpty {
-                        Text("No photos match your search")
-                            .multilineTextAlignment(.center)
-                            .padding(.top, 30.0)
-                            .padding(.bottom, 10.0)
-                            .padding(.leading, 10.0)
-                            .padding(.trailing, 10.0)
-                    } else if numberOfPhotos == 0 {
-                        Text("Your cloud is empty")
-                            .multilineTextAlignment(.center)
-                            .padding(.top, 30.0)
-                            .padding(.bottom, 10.0)
-                            .padding(.leading, 10.0)
-                            .padding(.trailing, 10.0)
-                    }
+    @ViewBuilder
+    private func renderScrollView() -> some View {
+        let scrollView = ScrollView {
+            LabelsView(selectedLabels: $selectedLabels)
+            LazyVGrid(columns: columns, spacing: 1) {
+                ForEach(Array(sortedPhotos.enumerated()), id: \.1.id) { index, photo in
+                    renderStack(photo: photo, index: index)
                 }
             }
-            .coordinateSpace(name: "scroll")
-            .frame(maxWidth: .infinity)
-            .navigationTitle("Hoicloud")
-            .onPreferenceChange(VisibleIndexKey.self) { indices in
-                onVisibleIndicesChange(indices)
+            .id(sortedPhotosVersion)
+            if sortedPhotos.isEmpty && !searchText.isEmpty {
+                Text("No photos match your search")
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 30.0)
+                    .padding(.bottom, 10.0)
+                    .padding(.leading, 10.0)
+                    .padding(.trailing, 10.0)
+                    .id("photo_0")
+            } else if numberOfPhotos == 0 {
+                Text("Your cloud is empty")
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 30.0)
+                    .padding(.bottom, 10.0)
+                    .padding(.leading, 10.0)
+                    .padding(.trailing, 10.0)
+                    .id("photo_0")
             }
-            .toolbar {
-                if isSelecting {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        // delete button
-                        Button(action: deleteAction) {
-                            Label("Delete", systemImage: "trash")
-                                .labelStyle(.titleAndIcon)
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        // download button
-                        Button(action: downloadAction) {
-                            Label("Download", systemImage: "square.and.arrow.down")
-                                .labelStyle(.titleAndIcon)
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        // select cancel button
-                        Button(action: finishSelecting) {
-                            Text("Cancel")
-                        }
-                    }
-                } else {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        // select button
-                        Button(action: startSelecting) {
-                            Image(systemName: "checkmark.circle.fill")
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        // add button
-                        Button(action: startAddItem) {
-                            Image(systemName: "plus.circle.fill")
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        // config button
-                        Button(action: startConfiguration) {
-                            Image(systemName: "gearshape.fill")
-                        }
-                    }
-                }
-            }
-            .navigationViewStyle(StackNavigationViewStyle())
         }
         .refreshable {
             storageApi.downloadMetadata()
             storageApi.downloadLabels()
         }
-        .searchable(text: $searchText, placement: .automatic)
+        
+        if sortedPhotos.isEmpty {
+            scrollView
+        } else {
+            scrollView
+                .scrollPosition(id: $positionID, anchor: .top)
+                .defaultScrollAnchor(.top)
+                .searchable(text: $searchText, placement: .automatic)
+        }
     }
     
     @ViewBuilder
@@ -162,6 +172,52 @@ struct HomeTabView: View {
             .preference(key: VisibleIndexKey.self, value: [index])
         }
         .frame(height: tileHeight)
+        .id("\(sortedPhotosVersion)_photo_\(index)")
+    }
+    
+    @ToolbarContentBuilder
+    private func renderToolbar() -> some ToolbarContent {
+        if isSelecting {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                // delete button
+                Button(action: deleteAction) {
+                    Label("Delete", systemImage: "trash")
+                        .labelStyle(.titleAndIcon)
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                // download button
+                Button(action: downloadAction) {
+                    Label("Download", systemImage: "square.and.arrow.down")
+                        .labelStyle(.titleAndIcon)
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                // select cancel button
+                Button(action: finishSelecting) {
+                    Text("Cancel")
+                }
+            }
+        } else {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                // select button
+                Button(action: startSelecting) {
+                    Image(systemName: "checkmark.circle.fill")
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                // add button
+                Button(action: startAddItem) {
+                    Image(systemName: "plus.circle.fill")
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                // config button
+                Button(action: startConfiguration) {
+                    Image(systemName: "gearshape.fill")
+                }
+            }
+        }
     }
     
     private func downloadAction() {
@@ -233,7 +289,7 @@ struct HomeTabView: View {
             }
         }
         prefetchWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.2, execute: work)
     }
 }
 
