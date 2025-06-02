@@ -59,7 +59,3 @@ struct ImagePickerView: View {
         tabRouter.selectedTab = .uploads
     }
 }
-
-#Preview {
-    ContentView()
-}

@@ -64,8 +64,10 @@ struct LabelsView: View {
             }
         }) {
             if count > 0 {
-                Text("\(label) (\(count))")
+                Text(label)
                     .font(.system(size: 20))
+                Text(String(count))
+                    .font(.system(size: 10))
             } else {
                 Text(label)
                     .font(.system(size: 20))

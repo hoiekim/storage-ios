@@ -50,6 +50,10 @@ struct HomeTabView: View {
         .onChange(of: storageApi.photos) { sortPhotos() }
         .onChange(of: searchText) { sortPhotos() }
         .onChange(of: selectedLabels) { sortPhotos() }
+        .onAppear {
+            storageApi.downloadMetadata()
+            storageApi.downloadLabels()
+        }
     }
     
     @State private var sortTask: Task<Void, Never>?

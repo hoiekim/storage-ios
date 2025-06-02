@@ -10,15 +10,20 @@ import PhotosUI
 import SwiftUI
 
 func extractLabels(from image: UIImage) async -> [String] {
-    guard let cgImage = image.cgImage else {
-        return []
-    }
+    guard let cgImage = image.cgImage else { return [] }
 
     return await withCheckedContinuation { continuation in
         DispatchQueue.global().async {
+            var didResume = false
+            func resume(_ value: [String]) {
+                guard !didResume else { return }
+                didResume = true
+                continuation.resume(returning: value)
+            }
+
             let request = VNClassifyImageRequest { request, error in
                 guard let results = request.results as? [VNClassificationObservation] else {
-                    continuation.resume(returning: [])
+                    resume([])
                     return
                 }
 
@@ -26,14 +31,14 @@ func extractLabels(from image: UIImage) async -> [String] {
                     .filter { $0.confidence > 0.5 }
                     .map { $0.identifier }
 
-                continuation.resume(returning: labels)
+                resume(labels)
             }
 
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
             do {
                 try handler.perform([request])
             } catch {
-                continuation.resume(returning: [])
+                resume([])
             }
         }
     }
@@ -50,7 +55,9 @@ func extractLabels(from asset: PHAsset) async -> [String] {
             targetSize: CGSize(width: asset.pixelWidth, height: asset.pixelHeight),
             contentMode: .aspectFit,
             options: options
-        ) { image, _ in
+        ) { image, info in
+            let degraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+            guard !degraded else { return }
             continuation.resume(returning: image)
         }
     }

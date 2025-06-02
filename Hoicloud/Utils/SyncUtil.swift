@@ -132,6 +132,7 @@ final class SyncUtil {
         }
     }
     
+    @discardableResult
     func uploadMissingLabels() async -> Int {
         let labelMissingPhotos = storageApi.photos.filter {
             let metadata_id = $0.value.id

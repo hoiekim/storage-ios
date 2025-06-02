@@ -235,6 +235,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
             let existing = await getMetadataByItemId(itemId: itemId)
             if existing != nil {
                 print("Item already uploaded: \(itemId)")
+                Progress.uploads.complete(id: itemId)
                 return
             }
             let created = await getCreationDate(from: item)
@@ -260,6 +261,7 @@ class StorageApi: ObservableObject, @unchecked Sendable {
         let existing = await getMetadataByItemId(itemId: itemId)
         if existing != nil {
             print("Item already uploaded: \(itemId)")
+            Progress.uploads.complete(id: itemId)
             return
         }
         await tusUtil.uploadWithUrl(

@@ -26,7 +26,11 @@ struct ContentView: View {
     
     @ObservedObject private var storageApi = StorageApi.shared
     
-    var anyOfMultiple: [String] {[apiHost, apiKey, showConfiguration.description]}
+    var anyOfMultiple: [String] {[
+        apiHost,
+        apiKey,
+        showConfiguration.description
+    ]}
     
     var body: some View {
         TabView(selection: $tabRouter.selectedTab) {
@@ -84,6 +88,9 @@ struct ContentView: View {
                     } else {
                         showConfiguration = true
                     }
+                    
+                    try? await Task.sleep(for: .seconds(10))
+                    await SyncUtil.shared.uploadMissingLabels()
                 }
             }
             storageApi.tusUtil.resume()
