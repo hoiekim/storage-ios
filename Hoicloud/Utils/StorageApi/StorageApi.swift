@@ -24,7 +24,6 @@ struct LabelsResponse: Codable {
 
 class StorageApi: ObservableObject, @unchecked Sendable {
     static let shared = StorageApi()
-    private let fetch = Fetch()
     
     @AppStorage("apiHost") var apiHost = ""
     @AppStorage("apiKey") var apiKey = ""
@@ -32,6 +31,10 @@ class StorageApi: ObservableObject, @unchecked Sendable {
     @Published var photos: [String: Metadata] = [:]
     @Published var thumbnails: [String: UIImage] = [:]
     @Published var labels: [Int: [String]] = [:]
+    
+    private var fetch: Fetch {
+        return Fetch(apiHost: apiHost, apiKey: apiKey)
+    }
     
     private var _tusUtil: TusUtil?
     var tusUtil: TusUtil {
@@ -45,7 +48,13 @@ class StorageApi: ObservableObject, @unchecked Sendable {
     
     let isoFormatter = ISO8601DateFormatter()
     
-    func healthCheck() async -> Bool {
+    func healthCheck(apiHost: String? = nil, apiKey: String? = nil) async -> Bool {
+        let fetch = if let apiHost = apiHost, let apiKey = apiKey {
+            Fetch(apiHost: apiHost, apiKey: apiKey)
+        } else {
+            self.fetch
+        }
+        
         guard let fetchResult = await fetch.json(UploadResponse.self) else { return false }
         let (statusCode, json) = fetchResult
         let message = json.message ?? "Unknown"

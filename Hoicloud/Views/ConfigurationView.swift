@@ -19,6 +19,8 @@ struct ConfigurationView: View {
     @FocusState private var focusedField: String?
     
     var isInputEmpty: Bool { apiHostInput.isEmpty || apiKeyInput.isEmpty }
+    
+    var anyOfMultiple: [String] {[apiHostInput, apiKeyInput]}
 
     var body: some View {
         VStack {
@@ -85,7 +87,11 @@ struct ConfigurationView: View {
                     }
                 }
             }
-            .padding()
+            .onChange(of: anyOfMultiple) {
+                Task {
+                    await updateHealth()
+                }
+            }
             
             Spacer()
         }
@@ -93,10 +99,16 @@ struct ConfigurationView: View {
     }
     
     private func onSave() {
+        if apiHostInput.isEmpty {
+            focusedField = "apiHostInput"
+        } else if apiKeyInput.isEmpty {
+            focusedField = "apiKeyInput"
+        }
+        
         Task {
-            apiHost = apiHostInput
-            apiKey = apiKeyInput
             if await updateHealth() {
+                apiHost = apiHostInput
+                apiKey = apiKeyInput
                 do { try? await Task.sleep(nanoseconds: 500_000_000) }
                 show = false
             }
@@ -105,31 +117,19 @@ struct ConfigurationView: View {
     
     private func onCancel() {
         Task {
+            apiHostInput = apiHost
+            apiKeyInput = apiKey
             if await updateHealth() {
                 show = false
             }
         }
     }
     
-    private func closeIfHealthy() async {
-        if await updateHealth() {
-            do { try? await Task.sleep(nanoseconds: 500_000_000) }
-            show = false
-        }
-    }
-    
     private func updateHealth() async -> Bool {
-        if apiHostInput.isEmpty {
-            focusedField = "apiHostInput"
-            isApiHealthy = nil
-            return false
-        } else if apiKeyInput.isEmpty {
-            focusedField = "apiKeyInput"
-            isApiHealthy = nil
-            return false
-        }
-        
-        if await storageApi.healthCheck() {
+        if await storageApi.healthCheck(
+            apiHost: apiHostInput,
+            apiKey: apiKeyInput
+        ) {
             isApiHealthy = true
             return true
         } else {

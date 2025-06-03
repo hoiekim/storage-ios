@@ -61,6 +61,7 @@ struct ProgressItemView: View {
             // SwiftUI default spinner
             ProgressView()
                 .onAppear {
+                    self.uiImage = storageApi.thumbnails[key]
                     if let photo = storageApi.photos[key] {
                         resolvePhotoMetadata(photo: photo)
                     } else {

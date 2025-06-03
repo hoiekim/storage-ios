@@ -54,8 +54,13 @@ func getUrlRequest(
 }
 
 class Fetch {
-    @AppStorage("apiHost") var apiHost = ""
-    @AppStorage("apiKey") var apiKey = ""
+    var apiHost: String
+    var apiKey: String
+    
+    init(apiHost: String, apiKey: String) {
+        self.apiHost = apiHost
+        self.apiKey = apiKey
+    }
     
     func data(
         method: String? = "GET",
